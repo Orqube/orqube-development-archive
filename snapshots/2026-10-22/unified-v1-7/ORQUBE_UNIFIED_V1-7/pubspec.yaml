@@ -1,0 +1,71 @@
+name: orqube_app
+description: ORQUBE Mining App V6 Final - Web3 mining, Firebase login, AdMob reward, Google Play ready.
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.7.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_localizations:
+    sdk: flutter
+  mobile_scanner: 7.4.2
+  app_links: 6.4.1
+  firebase_app_check: ^0.3.2+10
+
+  cupertino_icons: ^1.0.8
+
+  firebase_core: ^3.15.1
+  firebase_auth: ^5.6.2
+  firebase_auth_platform_interface: ^7.7.3
+  cloud_firestore: ^5.6.11
+  firebase_storage: ^12.4.10
+  file_picker: ^8.3.7
+  image: ^4.5.4
+  google_sign_in: ^6.3.0
+  google_fonts: ^6.3.2
+
+  google_mobile_ads: ^9.0.0
+  flutter_map: ^8.1.1
+  latlong2: ^0.9.1
+  geolocator: ^13.0.4
+  http: ^1.2.2
+  url_launcher: ^6.3.1
+  share_plus: ^10.1.4
+  qr_flutter: ^4.1.0
+  pdfrx: ^2.4.7
+  path_provider: ^2.1.6
+  shared_preferences: ^2.5.3
+  web3dart: ^2.7.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^5.0.0
+
+flutter:
+  fonts:
+    - family: OrqubeHangul
+      fonts:
+        - asset: assets/fonts/OrqubeHangul.ttf
+  uses-material-design: true
+
+  assets:
+  - assets/images/
+  - assets/images/debate/
+  - assets/images/logo/
+  - assets/images/nft/
+  - assets/images/icons/
+  - assets/images/background/
+  - assets/nft/
+  - assets/images/nft/
+  - assets/images/brand/
+  - assets/icons/
+  - assets/sounds/
+  - assets/animation/
+  - assets/docs/

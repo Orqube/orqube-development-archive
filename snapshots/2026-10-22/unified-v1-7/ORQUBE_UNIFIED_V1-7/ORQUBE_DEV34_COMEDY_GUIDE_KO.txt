@@ -1,0 +1,32 @@
+ORQUBE DEV34 마지막 패치 + 풍자 코미디 통합 패치
+
+적용: 이 ZIP의 내용을 기존 ORQUBE_DEV34 프로젝트 루트(pubspec.yaml이 있는 폴더)에 덮어씁니다.
+기존 마지막 혼합 토론방 패치도 포함되어 있으므로 별도로 먼저 적용할 필요가 없습니다.
+
+추가: 별도 혼합 토론방, 사람/AI 진행자와 패널, 사진 업로드/AI 인물묘사,
+성격/언변/관점/남녀 음성, 여러 방 관리(마지막 패치 기능).
+기존 3자 토론과 혼합 토론방에 풍자·개그 모드, 군중 웃음·박수·반전 효과음 추가.
+움직이는 아바타 없이 정적인 인물 사진을 유지합니다.
+군중 효과음은 자체 합성 오디오이며 실제 관객 녹음은 아닙니다.
+
+사용: 풍자·개그 모드를 켠 다음 시작하세요. 군중 웃음·효과음 버튼으로 반응을 끌 수 있습니다.
+음량 슬라이더/음소거는 효과음에도 적용됩니다. 발언 후 웃음/박수/반전 stage에 맞춰 재생합니다.
+모드 변경은 다음 AI 생성 묶음부터 반영됩니다. 혼합방에서는 방장이 생성 모드를 결정합니다.
+참가자는 자신의 화면에서 같은 풍자·효과음 옵션을 켜야 군중 반응을 들을 수 있습니다.
+탭 녹화 시 현재 탭과 탭 오디오 공유를 선택하면 음성과 효과음이 함께 녹화됩니다.
+마이크는 요청하지 않습니다. 사람 패널은 기존 마지막 패치와 같이 글 입력 발언 방식입니다.
+
+프로젝트 루트에서 실행:
+flutter pub get
+flutter build web --release
+
+서버 적용(Hosting 공개 배포는 포함하지 않음):
+firebase deploy --only functions:ai:generateThreeWayDebate,functions:ai:manageMixedDebateRoom,functions:ai:generateMixedDebate,functions:ai:generateMixedDebatePortrait,functions:ai:generateDebateSpeech,firestore:rules --project orqube-576e7
+
+현재 firebase.json은 공개 Hosting 대상을 분리하지 않으므로 개발용 테스트는 먼저
+flutter run -d chrome
+으로 확인하세요. 서버 함수 변경은 같은 Firebase 프로젝트의 호출자에게 적용됩니다.
+
+검증: 서버 JS 문법 검사 통과. 기존/혼합 토론/효과음 자동 테스트 33개 통과.
+이 작업 환경에는 Flutter SDK가 없어 Dart 분석 및 전체 웹 빌드는 수행하지 못했습니다.
+실제 로그인, AI 유료 호출, 관객 소리 품질, 탭 녹화는 로컬 실행 후 확인해야 합니다.

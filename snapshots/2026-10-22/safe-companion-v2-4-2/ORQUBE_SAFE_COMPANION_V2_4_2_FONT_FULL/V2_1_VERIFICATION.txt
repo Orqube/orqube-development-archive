@@ -1,0 +1,9 @@
+V2.1 static verification
+Dart grammar: 37 files, 0 syntax errors.
+Relative import paths: exist.
+Translation catalog: 538 messages, five complete non-Korean targets.
+Hangul and placeholder checks: passed for catalog values.
+Firestore rules: byte-identical to V2.0.
+New tests: trip step prerequisites, phone consent UI, six-language intro.
+Flutter analyze/test/APK build/device GPS and consent flows: NOT RUN (SDK unavailable).
+Syntax and translation checks do not establish runtime success.

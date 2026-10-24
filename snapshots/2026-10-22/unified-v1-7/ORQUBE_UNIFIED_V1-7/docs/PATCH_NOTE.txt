@@ -1,0 +1,12 @@
+ORQUBE TOKEN DRAFT SAVE FORMAT FIX
+2026-09-16
+
+수정 내용
+- 토큰 초안 저장 시 총 발행량/Cap의 int.parse 직접 호출 제거
+- tryParse 기반 안전 숫자 변환으로 변경
+- 빈 값/잘못된 숫자는 FormatException 대신 사용자 안내 표시
+- Mintable 사용 시 Cap 필수 및 Cap >= 최초 발행량 재확인
+- 기존 토큰 기능 선택(Fixed/Mint/Cap/Burn/Pause)은 그대로 유지
+
+적용 파일
+- lib/features/ai_launch/screens/launch_create_wizard_page.dart

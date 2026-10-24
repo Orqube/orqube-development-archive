@@ -1,0 +1,42 @@
+ORQUBE PATCH · 2026-09-16
+
+이번 패치 범위는 요청대로 두 가지입니다.
+
+1) 채굴 대시보드 기능 카드 변경
+- CRYPTO / 주요 가상자산 시세 카드 → APK / 안드로이드 앱 APK 설치
+- 실제 실행 경로인 lib/pages/mobile_dashboard_page-yy.txt 수정
+- 동일 소스인 lib/pages/mobile_dashboard_page.dart도 동기화
+- APK 클릭 주소: https://www.orqubic.com/apk/orqube-latest.apk
+- GLOBAL CRYPTO MARKET 실시간 시세 패널, 자동 갱신, 표시 효과는 삭제하지 않고 그대로 유지
+
+2) Token Create 발행량 아래 토큰 기능 선택 추가
+- Fixed Supply: 기본 선택
+- Mintable: 선택 가능
+- Cap: Mintable 선택 시 필수, 최초 발행량 이상이어야 함
+- Burnable: 기본 ON
+- Pausable: 기본 OFF
+- Mint/Pause 관리자 권한은 배포 지갑(msg.sender)에 자동 부여
+- 관리자 권한 이전 transferOwnership 포함
+- DEPLOY 직전 최종 Supply가 Cap을 초과하지 않는지 재검사
+- DEPLOY 확인창에 선택 기능 요약 표시
+- Deployment Archive에 tokenFeatures 저장
+
+실제 EVM 컨트랙트 적용
+- Kaia / Polygon EVM: 선택 기능에 따라 Solidity 소스를 동적으로 생성하고 컴파일
+- Fixed Supply: mint 함수 없음
+- Mintable + Cap: 관리자 mint 가능, maxSupply 초과 차단
+- Burnable: 보유자 자신의 토큰 burn 가능
+- Pausable: pause 상태에서 transfer / mint / burn 차단
+- pause / unpause 및 필요 시 transferOwnership 제공
+
+Solana
+- Solana는 SPL Token 권한 구조가 EVM과 달라 이번 기능 패치의 실제 컨트랙트 적용 대상에서 제외
+- Token Create 화면에 별도 안내 표시
+
+기존 프로젝트 호환
+- tokenFeatures가 없는 기존 초안/프로젝트는 기존처럼 Fixed Supply / Burn OFF / Mint OFF / Pause OFF로 배포되어 기능이 몰래 추가되지 않도록 처리
+
+필수 적용
+- Flutter 파일뿐 아니라 functions_ai/ai_launch_v081.js도 수정되었습니다.
+- 실제 토큰 기능 컴파일을 사용하려면 Firebase Functions AI codebase 재배포가 필요합니다.
+  firebase deploy --only functions:ai

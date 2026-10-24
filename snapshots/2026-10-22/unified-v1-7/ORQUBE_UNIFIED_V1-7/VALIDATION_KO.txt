@@ -1,0 +1,8 @@
+검증 결과
+개발용 서버 Node 문법 검사 통과.
+기존 서버 테스트 42개 + 혼합 토론 30분 경계·기존 방 시작·만료 후 발언 거부 테스트 1개: 총 43개 통과.
+Pi 서버 문법 검사 및 모의 인증·이메일 검증·중복 연결 차단·토큰 비저장 테스트 통과.
+YAML 파싱 및 추가 Dart 소스 상대 import 경로 확인 통과.
+Firestore 규칙 중괄호 검사 통과. Firebase Emulator 규칙 동작 검증은 미실행.
+Flutter SDK 미설치: flutter analyze, Flutter 테스트, 웹/APK 빌드 미실행.
+Pi 실제 계정 연결, Firebase 운영 배포, 실제 기기 GPS·카메라 동작 검증 미실행.

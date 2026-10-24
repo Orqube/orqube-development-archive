@@ -1,0 +1,29 @@
+ORQUBE 안심동행 V1.6 — 6개 언어 UI 및 테스트 APK 준비
+
+지원: 한국어 ko / 영어 en / 일본어 ja / 중국어 zh / 프랑스어 fr / 포르투갈어 pt.
+첫 시작은 기기 언어, 미지원 기기는 영어. 상단 지구본 메뉴에서 선택하면 기기에 저장합니다.
+주요 홈/로그인/보호자/설명서와 위치 공유 동의 안내에 번역 적용.
+기존 지도 한국어·영어 쌍은 기존 6개 언어 사전으로 연결하며 사전에 없는 항목은 영어로 표시할 수 있습니다.
+일부 기존 지도 상세 메시지/동적 복합문구는 원문이 남을 수 있어 실기기 언어 검수를 권합니다.
+지명은 지도 제공자 언어를 따릅니다. 자동 번역 API는 사용하지 않습니다.
+
+실행: 기존 Flutter 창 Ctrl+C → 새 V1.6 폴더의 PowerShell:
+flutter pub get
+flutter analyze --no-fatal-infos
+flutter run -d chrome --web-port=7354
+
+휴대폰 테스트 APK:
+powershell -ExecutionPolicy Bypass -File .\BUILD_TEST_APK.ps1
+생성 파일: build\app\outputs\flutter-apk\app-debug.apk
+테스트 전용 debug APK이며 Play 제출용이 아닙니다. 앱 설치 후 App Check/서명 등록 설정에 따라 Firebase 접근이 제한될 수 있습니다.
+실제 배포 AAB는 별도의 업로드 키와 release 서명 설정, App Check/Google 로그인 설정 검증이 필요합니다.
+기존 Android release 설정은 debug 서명 상태이므로 그대로 정식 출시하지 않습니다.
+
+6개 언어 각각: 메뉴·동의·설명서·계정 입력·보호자 연결 문구, 작은 화면 줄바꿈/버튼 잘림 확인.
+한국어 외 언어에서 지도 세부 안내는 영어 또는 원문이 남을 수 있으므로 상용 출시 전 번역 QA가 필요합니다.
+현재 버전은 기본 번역 적용 개발본이며 전 화면 번역 완성 검수본으로 표기하지 않습니다.
+
+Firestore 규칙은 언어 변경으로 다시 배포할 필요 없습니다. 앞서 보호자 규칙 게시와 실제 2개 계정 검증은 별도입니다.
+실제 위치 공유/절전 상태/화면 꺼짐/공유 종료 접근 차단 검증 후에 출시 심사를 준비하세요.
+이번 환경에 Flutter/Android SDK가 없어 flutter analyze, UI 렌더링, APK 빌드는 수행하지 못했습니다.
+제공물은 전체 소스이며 설치 APK는 포함되어 있지 않습니다.

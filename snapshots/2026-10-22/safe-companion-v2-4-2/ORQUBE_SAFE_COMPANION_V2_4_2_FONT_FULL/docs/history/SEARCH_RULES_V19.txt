@@ -1,0 +1,34 @@
+    // Add inside match /databases/{database}/documents, beside the V1.7 guardian rules.
+    // The existing safety_shares viewer list remains the single approval/revocation source.
+    match /hiking_search_records/{sharingUid} {
+      function searchViewer() {
+        return companionVerified()
+          && exists(/databases/$(database)/documents/safety_shares/$(sharingUid))
+          && request.auth.uid in get(/databases/$(database)/documents/safety_shares/$(sharingUid)).data.get('viewerUids', []);
+      }
+      function validSearch() {
+        return request.resource.data.keys().hasAll(['ownerUid','tripId','active','startedAt','plannedReturnAt','latitude','longitude','observedAt','route','pointCount','droppedPoints','updatedAt','retainUntil'])
+          && request.resource.data.keys().hasOnly(['ownerUid','tripId','active','startedAt','plannedReturnAt','latitude','longitude','observedAt','route','pointCount','droppedPoints','updatedAt','retainUntil'])
+          && request.resource.data.ownerUid == sharingUid
+          && request.resource.data.tripId is string && request.resource.data.tripId.size() <= 160
+          && request.resource.data.active == true
+          && request.resource.data.startedAt is timestamp
+          && (request.resource.data.plannedReturnAt == null || request.resource.data.plannedReturnAt is timestamp)
+          && request.resource.data.latitude is number && request.resource.data.latitude >= -90 && request.resource.data.latitude <= 90
+          && request.resource.data.longitude is number && request.resource.data.longitude >= -180 && request.resource.data.longitude <= 180
+          && request.resource.data.observedAt is timestamp
+          && request.resource.data.observedAt <= request.time + duration.value(5, 'm')
+          && request.resource.data.route is list && request.resource.data.route.size() >= 1 && request.resource.data.route.size() <= 4000
+          && request.resource.data.pointCount is int && request.resource.data.pointCount >= request.resource.data.route.size() && request.resource.data.pointCount <= 10000
+          && request.resource.data.droppedPoints is int && request.resource.data.droppedPoints >= 0
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.retainUntil is timestamp
+          && request.resource.data.retainUntil > request.time
+          && request.resource.data.retainUntil <= request.time + duration.value(24, 'h');
+      }
+      allow get: if owner(sharingUid) || (searchViewer()
+        && resource.data.active == true && resource.data.retainUntil > request.time);
+      allow list: if false;
+      allow create, update: if companionVerified() && owner(sharingUid) && validSearch();
+      allow delete: if owner(sharingUid);
+    }

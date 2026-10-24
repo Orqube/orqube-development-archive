@@ -1,0 +1,40 @@
+ORQUBE 안심동행 V1.1 — 인증/회원 집계/보호자 규칙 연결
+
+1. 새 폴더에 압축을 풀고 pubspec.yaml 폴더에서:
+flutter pub get
+flutter analyze
+flutter run -d chrome --web-port=7353
+
+2. 내 계정에서 인증 이메일 보내기 → 메일의 링크 클릭 → 인증 상태 새로고침.
+이미 인증 완료면 재인증하지 않습니다. 이메일 인증은 사용자가 본인 메일에서 직접 해야 합니다.
+
+3. 가입/로그인 시 users/{Firebase UID} 문서를 자동 생성/연결합니다.
+기존 users 문서는 잔액·역할·보상·프로필을 덮어쓰지 않습니다. 기존 계정은 중복 집계되지 않습니다.
+기존 회원문서가 없던 계정은 집계에 새로 포함될 수 있습니다.
+'회원 집계 연결 · 재시도' 버튼으로 이미 로그인한 계정도 연결합니다.
+DEV40 관리자 회원수는 users 문서 개수를 읽으므로 연결 성공 시 반영됩니다.
+신규 프로필은 UID/기본 표시명/생성시간/가입 출처만 저장하며 가입 보상이나 토큰을 지급하지 않습니다.
+
+4. 서버 규칙 배포:
+firestore.companion.merged.rules는 전달받은 DEV40_FIXED 규칙을 보존하고
+safety_requests와 safety_shares 두 경로만 추가한 파일입니다.
+운영 서버 최신 규칙은 이 환경에서 읽거나 배포하지 않았습니다.
+Firebase Console → orqube-576e7 → Firestore Database → 규칙에서 현재 내용을 백업하고
+DEV40 원본과 달라진 부분이 있으면 최신 변경을 유지하면서 두 블록만 합치세요.
+현재 서버 규칙이 DEV40 원본과 같음을 확인했을 때만 아래 병합 파일 배포 명령을 사용하세요:
+firebase login
+firebase deploy --only firestore:rules --config firebase.companion.merged.json --project orqube-576e7
+이 명령은 rules만 배포하며 Hosting/Functions는 배포하지 않습니다.
+기존 안내의 테스트 프로젝트용 예제 전체 규칙으로 운영 서버를 덮어쓰지 마세요.
+
+5. 두 계정으로 테스트:
+미승인 상대 위치 조회 거부 → 상대 ID 요청 → 상대 승인 → 이동 시작/위치 공유 →
+지도 갱신 → 공유 종료/접근 해제 → 조회 거부 확인.
+오류 코드를 요청 목록에 표시하도록 개선했습니다.
+permission-denied이면 규칙/로그인 토큰을 확인하고 App Check 적용 상태도 점검하세요.
+
+검증: Dart 기본 구분자·연결 경로, 기존 규칙 보존/추가 블록 검사, ZIP 무결성.
+Flutter analyze/실행/APK 빌드 및 서버 규칙 에뮬레이터 검증은 수행하지 못했습니다.
+실제 이메일 인증/회원수 증가/보호자 공유는 운영 서버에서 아직 검증하지 않았습니다.
+화면 꺼짐 상태 연속 공유, 자동 긴급 알림, AdMob 운영 광고는 이번 수정에 포함하지 않았습니다.
+기존 통합V1_먼저읽기.txt의 상세 이용법도 함께 참고하세요.

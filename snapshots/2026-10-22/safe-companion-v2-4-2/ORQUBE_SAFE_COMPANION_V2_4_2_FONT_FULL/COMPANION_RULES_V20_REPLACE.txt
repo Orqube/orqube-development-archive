@@ -1,0 +1,120 @@
+    // V2.0: replace V1.7 companionVerified + safety_requests + safety_shares blocks with this block.
+    function companionVerified() { return signedIn() && request.auth.token.email_verified == true; }
+    function connectedPeople(sharingUid, viewerUid) {
+      let contactPath = /databases/$(database)/documents/companion_contacts/$(sharingUid)/people/$(viewerUid);
+      let contact = get(contactPath).data;
+      let link = get(/databases/$(database)/documents/companion_connections/$(contact.connectionId)).data;
+      return exists(contactPath) && link.status == 'accepted'
+        && ((link.fromUid == sharingUid && link.toUid == viewerUid)
+          || (link.toUid == sharingUid && link.fromUid == viewerUid));
+    }
+    match /companion_connections/{connectionId} {
+      allow read: if companionVerified() && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+      allow create: if companionVerified()
+        && request.resource.data.keys().hasOnly(['fromUid','toUid','fromName','status','createdAt','updatedAt'])
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string && request.resource.data.toUid.size() > 0 && request.resource.data.toUid.size() <= 128
+        && request.resource.data.toUid != request.auth.uid
+        && request.resource.data.fromName is string && request.resource.data.fromName.size() <= 100
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time;
+      allow update: if companionVerified()
+        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt'])
+        && request.resource.data.updatedAt == request.time
+        && ((resource.data.status == 'pending' && resource.data.toUid == request.auth.uid && request.resource.data.status == 'accepted')
+          || request.resource.data.status == 'revoked');
+      allow delete: if false;
+    }
+    match /companion_contacts/{contactUid}/people/{peerUid} {
+      function validContact() {
+        let data = request.resource.data;
+        let link = get(/databases/$(database)/documents/companion_connections/$(data.connectionId)).data;
+        return data.keys().hasOnly(['peerUid','connectionId','name','relation','updatedAt'])
+          && data.peerUid == peerUid && data.connectionId is string
+          && data.name is string && data.name.size() > 0 && data.name.size() <= 128
+          && data.relation in ['family','friend','guardian','teammate']
+          && data.updatedAt == request.time
+          && ((link.fromUid == contactUid && link.toUid == peerUid)
+            || (link.toUid == contactUid && link.fromUid == peerUid));
+      }
+      allow read, delete: if owner(contactUid);
+      allow create, update: if companionVerified() && owner(contactUid) && validContact();
+    }
+    match /companion_contacts/{contactUid}/groups/{groupId} {
+      allow read, delete: if owner(contactUid);
+      allow create, update: if companionVerified() && owner(contactUid)
+        && request.resource.data.keys().hasOnly(['name','memberUids','updatedAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
+        && request.resource.data.memberUids is list && request.resource.data.memberUids.size() <= 50
+        && request.resource.data.updatedAt == request.time;
+    }
+    // Legacy requests can be read/removed by their parties; new clients use mutual invitations.
+    match /safety_requests/{sharingUid}/viewers/{viewerUid} {
+      allow read, delete: if owner(sharingUid) || owner(viewerUid);
+      allow create, update: if false;
+    }
+    match /safety_shares/{sharingUid} {
+      function validPayload() {
+        let data = request.resource.data;
+        return data.ownerUid == sharingUid
+          && data.keys().hasOnly(['ownerUid','viewerUids','searchViewerUids','active','mode','latitude','longitude','route','updatedAt','expiresAt'])
+          && data.get('viewerUids',[]) is list && data.get('viewerUids',[]).size() <= 50
+          && data.get('searchViewerUids',[]) is list
+          && data.get('searchViewerUids',[]).hasOnly(data.get('viewerUids',[]))
+          && (!('route' in data) || (data.route is list && data.route.size() <= 500))
+          && (!('latitude' in data) || (data.latitude is number && data.latitude >= -90 && data.latitude <= 90))
+          && (!('longitude' in data) || (data.longitude is number && data.longitude >= -180 && data.longitude <= 180));
+      }
+      function livePayload() {
+        return request.resource.data.get('active',false) != true || (
+          request.resource.data.latitude is number && request.resource.data.longitude is number
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.expiresAt > request.time
+          && request.resource.data.expiresAt <= request.time + duration.value(3,'m'));
+      }
+      allow get: if owner(sharingUid) || (companionVerified()
+        && resource.data.get('active',false) == true && resource.data.expiresAt > request.time
+        && request.auth.uid in resource.data.get('viewerUids',[]) && connectedPeople(sharingUid,request.auth.uid));
+      allow list: if false;
+      allow create: if companionVerified() && owner(sharingUid) && validPayload() && livePayload();
+      allow update: if companionVerified() && owner(sharingUid) && validPayload()
+        && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewerUids','searchViewerUids']) || livePayload());
+      allow delete: if owner(sharingUid);
+    }
+
+    // Add inside match /databases/{database}/documents, beside the V1.7 guardian rules.
+    // The existing safety_shares viewer list remains the single approval/revocation source.
+    match /hiking_search_records/{sharingUid} {
+      function searchViewer() {
+        return companionVerified()
+          && exists(/databases/$(database)/documents/safety_shares/$(sharingUid))
+          && request.auth.uid in get(/databases/$(database)/documents/safety_shares/$(sharingUid)).data.get('searchViewerUids', [])
+          && connectedPeople(sharingUid, request.auth.uid);
+      }
+      function validSearch() {
+        return request.resource.data.keys().hasAll(['ownerUid','tripId','active','startedAt','plannedReturnAt','latitude','longitude','observedAt','route','pointCount','droppedPoints','updatedAt','retainUntil'])
+          && request.resource.data.keys().hasOnly(['ownerUid','tripId','active','startedAt','plannedReturnAt','latitude','longitude','observedAt','route','pointCount','droppedPoints','updatedAt','retainUntil'])
+          && request.resource.data.ownerUid == sharingUid
+          && request.resource.data.tripId is string && request.resource.data.tripId.size() <= 160
+          && request.resource.data.active == true
+          && request.resource.data.startedAt is timestamp
+          && (request.resource.data.plannedReturnAt == null || request.resource.data.plannedReturnAt is timestamp)
+          && request.resource.data.latitude is number && request.resource.data.latitude >= -90 && request.resource.data.latitude <= 90
+          && request.resource.data.longitude is number && request.resource.data.longitude >= -180 && request.resource.data.longitude <= 180
+          && request.resource.data.observedAt is timestamp
+          && request.resource.data.observedAt <= request.time + duration.value(5, 'm')
+          && request.resource.data.route is list && request.resource.data.route.size() >= 1 && request.resource.data.route.size() <= 4000
+          && request.resource.data.pointCount is int && request.resource.data.pointCount >= request.resource.data.route.size() && request.resource.data.pointCount <= 10000
+          && request.resource.data.droppedPoints is int && request.resource.data.droppedPoints >= 0
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.retainUntil is timestamp
+          && request.resource.data.retainUntil > request.time
+          && request.resource.data.retainUntil <= request.time + duration.value(24, 'h');
+      }
+      allow get: if owner(sharingUid) || (searchViewer()
+        && resource.data.active == true && resource.data.retainUntil > request.time);
+      allow list: if false;
+      allow create, update: if companionVerified() && owner(sharingUid) && validSearch();
+      allow delete: if owner(sharingUid);
+    }

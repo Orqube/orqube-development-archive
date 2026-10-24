@@ -1,0 +1,8 @@
+ORQUBE AI BETA FREE + ORBS POLICY PATCH
+Modified files only:
+- functions_ai/ai_launch_v081.js
+- lib/features/ai_launch/services/orqube_ai_assistant_service.dart
+- lib/features/ai_launch/widgets/orqube_ai_assistant.dart
+- lib/features/ai_launch/widgets/wallet_address_compare_panel.dart
+- lib/features/ai_launch/screens/launch_project_page.dart
+- ORQUBE_AI_BETA_FREE_ORBS_POLICY_PATCH_README_KO.txt

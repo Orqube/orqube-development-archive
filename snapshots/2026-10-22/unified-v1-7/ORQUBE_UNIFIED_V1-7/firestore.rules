@@ -1,0 +1,879 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function owner(uid) { return signedIn() && request.auth.uid == uid; }
+    function userExists() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    function isAdmin() {
+      return signedIn() && request.auth.token.email_verified == true
+        && (!userExists() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('disabled', false) != true) && (
+        request.auth.token.email == 'byd1009@naver.com' ||
+        (userExists() && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'admin' ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true
+        ))
+      );
+    }
+    // Public queries must include published == true. Drafts are admin-only.
+    match /video_posts/{videoId} {
+      allow read: if isAdmin() || resource.data.published == true;
+      allow delete: if isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasAll(['title', 'description', 'url', 'published', 'createdAt', 'updatedAt', 'updatedBy'])
+        && request.resource.data.keys().hasOnly(['title', 'description', 'url', 'published', 'createdAt', 'updatedAt', 'updatedBy'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 160
+        && request.resource.data.description is string && request.resource.data.description.size() <= 3000
+        && request.resource.data.url is string
+        && request.resource.data.url.matches('https://www[.]youtube[.]com/watch[?]v=[A-Za-z0-9_-]{11}')
+        && request.resource.data.published is bool
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid
+        && (!exists(/databases/$(database)/documents/video_posts/$(videoId))
+            ? request.resource.data.createdAt == request.time
+            : request.resource.data.createdAt == resource.data.createdAt);
+    }
+
+    function adminFieldsUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['role', 'isAdmin', 'disabled', 'adminMemo', 'adminUpdatedAt']);
+    }
+
+
+    // ORQUBE 방문 통계.
+    // 방문자는 자신의 랜덤 설치 ID 문서에 쓰기만 할 수 있고 읽을 수 없습니다.
+    // 관리자만 통계를 조회합니다. 사용자 화면에는 이 통계를 노출하지 않습니다.
+    match /visitor_devices/{visitorId} {
+      allow read: if isAdmin();
+      allow create, update: if
+        request.resource.data.visitorId == visitorId
+        && request.resource.data.keys().hasOnly([
+          'visitorId', 'firstSeen', 'lastSeen', 'isGuest', 'platform'
+        ])
+        && request.resource.data.isGuest is bool
+        && request.resource.data.platform is string;
+      allow delete: if isAdmin();
+    }
+
+    match /visitor_daily/{dayKey}/visitors/{visitorId} {
+      allow read: if isAdmin();
+      allow create, update: if
+        request.resource.data.visitorId == visitorId
+        && request.resource.data.dayKey == dayKey
+        && request.resource.data.keys().hasOnly([
+          'visitorId', 'dayKey', 'firstSeen', 'lastSeen', 'isGuest', 'platform'
+        ])
+        && request.resource.data.isGuest is bool
+        && request.resource.data.platform is string;
+      allow delete: if isAdmin();
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create: if owner(uid)
+        && !request.resource.data.keys().hasAny(['isAdmin', 'disabled', 'adminMemo', 'adminUpdatedAt'])
+        && (!request.resource.data.keys().hasAny(['role']) || request.resource.data.role != 'admin');
+      allow update: if (isAdmin() && !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['nickname', 'bio', 'country', 'photoUrl', 'profileImageUrl', 'profilePhotoPath', 'useNftProfile', 'profileUpdatedAt']))
+        || (owner(uid) && adminFieldsUnchanged());
+      allow delete: if isAdmin();
+
+      match /attendance/{dayKey} {
+        allow read: if owner(uid) || isAdmin();
+        allow create: if owner(uid)
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.dayKey == dayKey
+          && request.resource.data.rewardPoints is int
+          && request.resource.data.rewardPoints >= 20
+          && request.resource.data.rewardOrbs is number
+          && request.resource.data.rewardOrbs >= 0.02;
+        allow update, delete: if false;
+      }
+
+      match /rewardClaims/{claimId} {
+        allow read: if owner(uid) || isAdmin();
+        allow create: if owner(uid)
+          && request.resource.data.type is string
+          && request.resource.data.dayKey is string
+          && request.resource.data.points is int
+          && request.resource.data.points >= 0
+          && request.resource.data.orbs is number
+          && request.resource.data.orbs >= 0;
+        allow update, delete: if false;
+      }
+
+      match /rewardHistory/{rewardId} {
+        allow read: if owner(uid) || isAdmin();
+        allow create: if owner(uid)
+          && request.resource.data.type is string
+          && request.resource.data.type in ['attendance', 'daily', 'event', 'adReward', 'mining']
+          && request.resource.data.dayKey is string
+          && request.resource.data.points is int
+          && request.resource.data.points >= 0
+          && request.resource.data.orbs is number
+          && request.resource.data.orbs >= 0;
+        allow update, delete: if false;
+      }
+
+
+      match /items/{itemId} {
+        allow read: if owner(uid) || isAdmin();
+        allow create, update: if owner(uid) || isAdmin();
+        allow delete: if isAdmin();
+      }
+
+      match /itemClaims/{dayKey} {
+        allow read: if owner(uid) || isAdmin();
+        allow create: if owner(uid)
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.dayKey == dayKey
+          && request.resource.data.count is int
+          && request.resource.data.count >= 1
+          && request.resource.data.count <= 3;
+        allow update, delete: if false;
+      }
+
+      match /miningRateHistory/{historyId} {
+        allow read: if owner(uid) || isAdmin();
+        allow create: if owner(uid) || isAdmin();
+        allow update, delete: if false;
+      }
+
+      match /walletTransactions/{transactionId} {
+        allow read: if owner(uid) || isAdmin();
+        allow create: if owner(uid)
+          && request.resource.data.type is string
+          && request.resource.data.amount is number
+          && request.resource.data.symbol is string;
+        allow update, delete: if false;
+      }
+
+      match /blocked_users/{id} { allow read, write: if owner(uid); }
+      match /notifications/{id} {
+        allow read, update, delete: if owner(uid);
+        allow create: if signedIn();
+      }
+      match /friends/{id} { allow read: if signedIn(); allow write: if owner(uid); }
+      match /following/{id} { allow read: if signedIn(); allow write: if owner(uid); }
+      match /followers/{id} { allow read: if signedIn(); allow create, delete: if signedIn(); }
+    }
+
+
+    // 친구초대 코드: 로그인 사용자는 자신의 코드만 생성/수정할 수 있습니다.
+    match /referral_codes/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.code == code;
+      allow update: if isAdmin() || (signedIn()
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.code == resource.data.code);
+      allow delete: if isAdmin();
+    }
+
+    // 추천 가입은 가입자 UID 문서 1개만 만들 수 있으며, 추천코드의 실제 소유자와 일치해야 합니다.
+    match /referrals/{inviteeUid} {
+      allow read: if signedIn() && (
+        request.auth.uid == inviteeUid ||
+        resource.data.referrerUid == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if signedIn()
+        && request.auth.uid == inviteeUid
+        && request.resource.data.inviteeUid == inviteeUid
+        && request.resource.data.status == 'joined'
+        && request.resource.data.rewardPoints == 20
+        && request.resource.data.rewardOrbs == 0.02
+        && exists(/databases/$(database)/documents/referral_codes/$(request.resource.data.inviteCode))
+        && get(/databases/$(database)/documents/referral_codes/$(request.resource.data.inviteCode)).data.ownerUid
+          == request.resource.data.referrerUid
+        && get(/databases/$(database)/documents/referral_codes/$(request.resource.data.inviteCode)).data.active == true
+        && request.resource.data.referrerUid != request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // 추천 보상은 가입 시 1회 생성되고, 실제 추천인만 미수령→수령 상태로 변경할 수 있습니다.
+    match /referral_rewards/{inviteeUid} {
+      allow read: if signedIn() && (
+        request.auth.uid == inviteeUid ||
+        resource.data.referrerUid == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if signedIn()
+        && request.auth.uid == inviteeUid
+        && request.resource.data.inviteeUid == inviteeUid
+        && request.resource.data.rewardPoints == 20
+        && request.resource.data.rewardOrbs == 0.02
+        && request.resource.data.claimed == false
+        && existsAfter(/databases/$(database)/documents/referrals/$(inviteeUid))
+        && getAfter(/databases/$(database)/documents/referrals/$(inviteeUid)).data.inviteeUid == inviteeUid
+        && getAfter(/databases/$(database)/documents/referrals/$(inviteeUid)).data.referrerUid
+          == request.resource.data.referrerUid
+        && getAfter(/databases/$(database)/documents/referrals/$(inviteeUid)).data.inviteCode
+          == request.resource.data.inviteCode
+        && getAfter(/databases/$(database)/documents/referrals/$(inviteeUid)).data.rewardPoints
+          == request.resource.data.rewardPoints
+        && getAfter(/databases/$(database)/documents/referrals/$(inviteeUid)).data.rewardOrbs
+          == request.resource.data.rewardOrbs;
+      allow update: if isAdmin() || (signedIn()
+        && resource.data.referrerUid == request.auth.uid
+        && resource.data.claimed == false
+        && request.resource.data.claimed == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claimed', 'claimedAt']));
+      allow delete: if isAdmin();
+    }
+
+
+    match /itemCollections/{collectionId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.itemId is string
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 1
+        && request.resource.data.memberUids[0] == request.auth.uid;
+      allow update: if signedIn() && (
+        (
+          !(request.auth.uid in resource.data.memberUids)
+          && request.resource.data.memberUids.hasAll(resource.data.memberUids)
+          && request.resource.data.memberUids.hasAny([request.auth.uid])
+          && request.resource.data.memberUids.size() <= 3
+        ) || (
+          resource.data.status == 'completed'
+          && request.auth.uid in resource.data.memberUids
+          && request.resource.data.memberUids == resource.data.memberUids
+          && request.resource.data.rewardClaimedUids.hasAll(resource.data.get('rewardClaimedUids', []))
+          && request.resource.data.rewardClaimedUids.hasAny([request.auth.uid])
+        )
+      );
+      allow delete: if isAdmin()
+        || (signedIn() && resource.data.ownerUid == request.auth.uid)
+        || (signedIn() && (
+          (resource.data.expiresAt is timestamp && resource.data.expiresAt <= request.time)
+          || (resource.data.createdAt is timestamp
+            && resource.data.createdAt + duration.value(24, 'h') <= request.time)
+        ));
+    }
+
+    match /activities/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+
+    match /friend_requests/{id} {
+      allow create: if signedIn() && request.resource.data.fromUid == request.auth.uid;
+      allow read: if signedIn() && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid || isAdmin());
+      allow update: if signedIn() && (resource.data.toUid == request.auth.uid || isAdmin());
+      allow delete: if signedIn() && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid || isAdmin());
+    }
+
+    match /community_posts/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 2
+        && request.resource.data.title.size() <= 80
+        && request.resource.data.body is string
+        && request.resource.data.body.size() >= 2
+        && request.resource.data.body.size() <= 3000;
+      allow delete: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow update: if signedIn() && (
+        resource.data.uid == request.auth.uid || isAdmin() ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']) && request.resource.data.likeCount is int && request.resource.data.likeCount >= 0 && (request.resource.data.likeCount == resource.data.likeCount + 1 || request.resource.data.likeCount == resource.data.likeCount - 1)) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount']) && request.resource.data.commentCount is int && request.resource.data.commentCount >= 0 && (request.resource.data.commentCount == resource.data.commentCount + 1 || request.resource.data.commentCount == resource.data.commentCount - 1)) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount']) && request.resource.data.viewCount is int && request.resource.data.viewCount == resource.data.viewCount + 1)
+      );
+      match /comments/{commentId} {
+        allow read: if signedIn();
+        allow create: if signedIn() && request.resource.data.uid == request.auth.uid && request.resource.data.body is string && request.resource.data.body.size() >= 1 && request.resource.data.body.size() <= 1000;
+        allow update, delete: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      }
+      match /likes/{likeUid} {
+        allow read: if signedIn();
+        allow create: if owner(likeUid) && request.resource.data.uid == request.auth.uid;
+        allow delete: if owner(likeUid) || isAdmin();
+        allow update: if false;
+      }
+    }
+
+    match /chat_rooms/{room}/messages/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() <= 1000;
+      allow update, delete: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+    match /reports/{id} {
+      allow create: if signedIn() && request.resource.data.reporterUid == request.auth.uid;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /airsoft_teams/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if signedIn() && (resource.data.ownerUid == request.auth.uid || isAdmin());
+      match /applications/{applicationUid} {
+        allow read: if signedIn() && (owner(applicationUid) || get(/databases/$(database)/documents/airsoft_teams/$(id)).data.ownerUid == request.auth.uid || isAdmin());
+        allow create: if owner(applicationUid);
+        allow update, delete: if owner(applicationUid) || (signedIn() && get(/databases/$(database)/documents/airsoft_teams/$(id)).data.ownerUid == request.auth.uid) || isAdmin();
+      }
+      match /members/{memberUid} {
+        allow read: if signedIn();
+        allow create, update, delete: if signedIn() && (owner(memberUid) || get(/databases/$(database)/documents/airsoft_teams/$(id)).data.ownerUid == request.auth.uid || isAdmin());
+      }
+    }
+
+    match /airsoft_matches/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if signedIn() && (resource.data.ownerUid == request.auth.uid || isAdmin());
+      match /applications/{applicationUid} {
+        allow read: if signedIn() && (owner(applicationUid) || get(/databases/$(database)/documents/airsoft_matches/$(id)).data.ownerUid == request.auth.uid || isAdmin());
+        allow create: if owner(applicationUid);
+        allow update, delete: if owner(applicationUid) || (signedIn() && get(/databases/$(database)/documents/airsoft_matches/$(id)).data.ownerUid == request.auth.uid) || isAdmin();
+      }
+    }
+
+    match /airsoft_chats/{room}/messages/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 1000;
+      allow update, delete: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+    match /airsoft_profiles/{profileUid} { allow read: if signedIn(); allow create, update, delete: if owner(profileUid) || isAdmin(); }
+    match /airsoft_places/{id} { allow read: if signedIn(); allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid; allow update, delete: if signedIn() && (resource.data.ownerUid == request.auth.uid || isAdmin()); }
+    match /airsoft_businesses/{id} { allow read: if signedIn(); allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid; allow update, delete: if signedIn() && (resource.data.ownerUid == request.auth.uid || isAdmin()); }
+    match /airsoft_market_posts/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if signedIn() && (resource.data.ownerUid == request.auth.uid || isAdmin());
+      match /likes/{likeUid} { allow read: if signedIn(); allow create, delete: if owner(likeUid) || isAdmin(); allow update: if false; }
+      match /comments/{commentId} { allow read: if signedIn(); allow create: if signedIn() && request.resource.data.uid == request.auth.uid; allow update, delete: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin()); }
+    }
+    match /airsoft_reports/{id} { allow create: if signedIn() && request.resource.data.reporterUid == request.auth.uid; allow read, update, delete: if isAdmin(); }
+    match /airsoft_participants/{participantUid} { allow read, write: if owner(participantUid) || isAdmin(); }
+    match /airsoft_events/{id} { allow read: if signedIn(); allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid; allow update, delete: if signedIn() && (resource.data.ownerUid == request.auth.uid || isAdmin()); }
+
+    // ORQUBE Airsoft safety location: never public.
+    // Current client version permits only the owner and administrators.
+    match /airsoft_live_locations/{locationUid} {
+      allow read: if owner(locationUid) || isAdmin();
+      allow create, update: if owner(locationUid)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.latitude is number
+        && request.resource.data.longitude is number
+        && request.resource.data.expiresAt is timestamp;
+      allow delete: if owner(locationUid) || isAdmin();
+    }
+
+    match /airsoft_sos/{id} {
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.latitude is number
+        && request.resource.data.longitude is number;
+      allow read: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+
+    match /safe_home_sessions/{sessionUid} {
+      allow read: if owner(sessionUid) || isAdmin();
+      allow create, update: if owner(sessionUid) && request.resource.data.uid == request.auth.uid;
+      allow delete: if owner(sessionUid) || isAdmin();
+    }
+
+    match /hiking_sessions/{sessionUid} {
+      allow read: if owner(sessionUid) || isAdmin();
+      allow create, update: if owner(sessionUid) && request.resource.data.uid == request.auth.uid;
+      allow delete: if owner(sessionUid) || isAdmin();
+    }
+
+    // Automatic discovery is managed by verified-admin server endpoints only.
+    match /auto_marketing/{id} { allow read, write: if false; }
+    match /auto_marketing_candidates/{id} { allow read, write: if false; }
+    match /auto_marketing_drafts/{id} { allow read, write: if false; }
+    match /auto_marketing_runs/{id} { allow read, write: if false; }
+
+    match /marketing_campaigns/{campaignId} {
+      allow read, write: if isAdmin();
+      match /distribution_logs/{logId} {
+        allow read: if isAdmin();
+        allow write: if false;
+      }
+    }
+
+    // Public homepage content: visitors can read, only administrators can write.
+    match /home_media/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /home_cafe_posts/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /public_config/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /admin_config/{document=**} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /news/{id} { allow read: if signedIn(); allow create, update, delete: if isAdmin(); }
+    match /orqube_news/{id} { allow read: if true; allow create, update, delete: if isAdmin(); }
+    match /events/{id} { allow read: if true; allow create, update, delete: if isAdmin(); }
+    match /popup_notices/{id} { allow read: if true; allow create, update, delete: if isAdmin(); }
+    match /whitepapers/{id} { allow read: if true; allow create, update, delete: if isAdmin(); }
+    match /translations/{id} { allow read: if true; allow create, update, delete: if isAdmin(); }
+  // ORQUBE AI MARKETING - Human Approval Queue
+  match /marketing_approval_queue/{targetId} {
+    allow read: if isAdmin();
+    allow create: if isAdmin();
+
+    allow update: if isAdmin()
+      && request.resource.data.execution_enabled == 'NO'
+      && request.resource.data.email_send == 'OFF'
+      && request.resource.data.external_posting == 'OFF'
+      && request.resource.data.paid_ads == 'OFF';
+
+    allow delete: if false;
+  }
+  // ORQUBE QR REWARD - public campaign metadata only.
+// Customers may read a printed QR without signing in; only the authenticated
+// project owner (or an admin) may create/update campaign settings.
+match /qr_reward_campaigns/{campaignDocId} {
+  allow read: if true;
+  allow create: if signedIn()
+    && request.resource.data.ownerUid == request.auth.uid;
+  allow update: if isAdmin() || (signedIn()
+    && resource.data.ownerUid == request.auth.uid
+    && request.resource.data.ownerUid == resource.data.ownerUid);
+  allow delete: if false;
+}
+
+// Claim documents are created by the Cloud Function. The issuer may read only
+// claims that belong to them. Server/admin SDK writes bypass these client rules.
+match /qr_reward_claims/{claimId} {
+  allow create, delete: if false;
+  allow read: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
+  allow update: if false;
+}
+
+// Dedicated immutable TX log written by qrRewardConfirmPaid on the server.
+match /qr_reward_tx_logs/{logId} {
+  allow read: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
+  allow create, update, delete: if false;
+}
+
+// Server-only duplicate/limit guards.
+match /qr_reward_claim_guards/{guardId} { allow read, write: if false; }
+match /qr_reward_tx_guards/{guardId} { allow read, write: if false; }
+
+// ORQUBE AI LAUNCH
+match /launch_projects/{projectId} {
+
+  // 공개된 프로젝트는 누구나 읽기
+  // 초안은 작성자 본인만 읽기
+  allow read: if resource.data.status == 'published'
+              || (signedIn()
+                  && request.auth.uid == resource.data.ownerUid);
+
+  // 로그인한 사용자가 자신의 초안만 생성
+  allow create: if signedIn()
+                && request.resource.data.ownerUid == request.auth.uid
+                && request.resource.data.status == 'draft'
+                && request.resource.data.contractAddress == null
+                && request.resource.data.externalMarketUrl == null;
+
+  // 작성자 본인만 수정
+  // 컨트랙트 주소와 외부 거래주소는 사용자 직접 변경 금지
+  allow update: if signedIn()
+                && request.auth.uid == resource.data.ownerUid
+                && request.resource.data.ownerUid == resource.data.ownerUid
+                && request.resource.data.contractAddress == resource.data.contractAddress
+                && request.resource.data.externalMarketUrl == resource.data.externalMarketUrl;
+
+  allow delete: if false;
+}
+
+// =====================================================================
+    // ORQUBE AI LAUNCH V0.7.6
+    // Add-only rules: Token Project / Kaia Wallet / ORBS Starter / Deploy
+    // =====================================================================
+
+    match /launch_projects/{projectId} {
+      // ORQUBE AI Launch rule
+      // ORQUBE AI Launch rule
+      allow read: if
+        resource.data.status == 'published'
+        || isAdmin()
+        || (signedIn() && resource.data.ownerUid == request.auth.uid);
+
+      // ORQUBE AI Launch rule
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.status == 'draft'
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.symbol is string
+        && request.resource.data.symbol.size() >= 1
+        && request.resource.data.symbol.size() <= 16
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 3000
+        && request.resource.data.chain in ['Kaia', 'Polygon', 'Solana']
+        && request.resource.data.contractAddress == null;
+
+      // ORQUBE AI Launch rule
+      // ORQUBE AI Launch rule
+      allow update: if isAdmin() || (
+        signedIn()
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'contractAddress',
+          'deployTxHash',
+          'txHash',
+          'deployedAt',
+          'chainId',
+          'price',
+          'priceChange24h',
+          'holders',
+          'volume24h',
+          'marketCap',
+          'externalMarketUrl'
+        ])
+        && (
+          // ORQUBE AI Launch rule
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'deploymentStatus',
+            'deploymentRequestId'
+          ])
+
+          // ORQUBE AI Launch rule
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'walletAddress',
+              'deploymentStatus',
+              'updatedAt'
+            ])
+            && request.resource.data.deploymentStatus == 'wallet_ready'
+            && request.resource.data.walletAddress is string
+            && request.resource.data.walletAddress.matches('^0x[0-9a-fA-F]{40}$')
+          )
+
+          // ORQUBE AI Launch rule
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'walletAddress',
+              'deploymentStatus',
+              'deploymentRequestId',
+              'updatedAt'
+            ])
+            && request.resource.data.deploymentStatus == 'review_requested'
+            && request.resource.data.walletAddress is string
+            && request.resource.data.walletAddress.matches('^0x[0-9a-fA-F]{40}$')
+            && request.resource.data.deploymentRequestId is string
+            && existsAfter(
+              /databases/$(database)/documents/launch_deployment_requests/$(request.resource.data.deploymentRequestId)
+            )
+            && getAfter(
+              /databases/$(database)/documents/launch_deployment_requests/$(request.resource.data.deploymentRequestId)
+            ).data.projectId == projectId
+            && getAfter(
+              /databases/$(database)/documents/launch_deployment_requests/$(request.resource.data.deploymentRequestId)
+            ).data.ownerUid == request.auth.uid
+          )
+        )
+      );
+
+      allow delete: if isAdmin()
+        || (signedIn() && resource.data.ownerUid == request.auth.uid);
+    }
+
+    match /launch_wallets/{ownerUid} {
+      // ORQUBE AI Launch rule
+      allow read: if owner(ownerUid) || isAdmin();
+
+      // ORQUBE AI Launch rule
+      // ORQUBE AI Launch rule
+      allow create: if owner(ownerUid)
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.walletAddress is string
+        && ((request.resource.data.chain in ['Kaia', 'Polygon'] && request.resource.data.walletAddress.matches('^0x[0-9a-fA-F]{40}$'))
+            || (request.resource.data.chain == 'Solana' && request.resource.data.walletAddress.matches('^[1-9A-HJ-NP-Za-km-z]{32,44}$')))
+        && request.resource.data.chain in ['Kaia', 'Polygon', 'Solana']
+        && request.resource.data.walletStatus == 'connected'
+        && request.resource.data.keys().hasOnly([
+          'ownerUid',
+          'walletAddress',
+          'chain',
+          'walletStatus',
+          'createdAt',
+          'updatedAt'
+        ]);
+
+      allow update: if isAdmin() || (
+        owner(ownerUid)
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'ownerUid',
+          'walletAddress',
+          'chain',
+          'walletStatus',
+          'createdAt',
+          'updatedAt'
+        ])
+        && (
+          (
+            request.resource.data.walletStatus == 'connected'
+            && request.resource.data.walletAddress is string
+            && ((request.resource.data.chain in ['Kaia', 'Polygon'] && request.resource.data.walletAddress.matches('^0x[0-9a-fA-F]{40}$'))
+                || (request.resource.data.chain == 'Solana' && request.resource.data.walletAddress.matches('^[1-9A-HJ-NP-Za-km-z]{32,44}$')))
+            && request.resource.data.chain in ['Kaia', 'Polygon', 'Solana']
+          )
+          || (
+            request.resource.data.walletStatus == 'disconnected'
+            && request.resource.data.walletAddress == null
+          )
+        )
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    match /launch_starter_requests/{ownerUid} {
+      // ORQUBE AI Launch rule
+      allow read: if owner(ownerUid) || isAdmin();
+
+      // ORQUBE AI Launch rule
+      allow create: if owner(ownerUid)
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasOnly([
+          'ownerUid',
+          'status',
+          'requestedAt',
+          'updatedAt'
+        ]);
+
+      // ORQUBE AI Launch rule
+      // ORQUBE AI Launch rule
+      allow update: if isAdmin() || (
+        owner(ownerUid)
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && resource.data.status in ['not_requested', 'rejected']
+        && request.resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'requestedAt',
+          'updatedAt'
+        ])
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    match /launch_config/{configId} {
+      // ORQUBE AI Launch rule
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /launch_deployment_requests/{requestId} {
+      // ORQUBE AI Launch rule
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.ownerUid == request.auth.uid);
+
+      // ORQUBE AI Launch rule
+      // ORQUBE AI Launch rule
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.projectId is string
+        && request.resource.data.walletAddress is string
+        && request.resource.data.walletAddress.matches('^0x[0-9a-fA-F]{40}$')
+        && request.resource.data.deployFeeOrbs is number
+        && request.resource.data.deployFeeOrbs > 0
+        && request.resource.data.status == 'review_requested'
+        && request.resource.data.keys().hasOnly([
+          'projectId',
+          'ownerUid',
+          'walletAddress',
+          'deployFeeOrbs',
+          'status',
+          'createdAt'
+        ])
+        && exists(
+          /databases/$(database)/documents/launch_projects/$(request.resource.data.projectId)
+        )
+        && get(
+          /databases/$(database)/documents/launch_projects/$(request.resource.data.projectId)
+        ).data.ownerUid == request.auth.uid
+        && get(
+          /databases/$(database)/documents/launch_projects/$(request.resource.data.projectId)
+        ).data.contractAddress == null
+        && exists(
+          /databases/$(database)/documents/launch_config/token_deploy
+        )
+        && request.resource.data.deployFeeOrbs
+          == get(
+            /databases/$(database)/documents/launch_config/token_deploy
+          ).data.deployFeeOrbs;
+
+      allow update, delete: if isAdmin();
+    }
+
+    // ==================== END ORQUBE AI LAUNCH V0.7.6 ====================
+
+    // Mixed rooms: membership via authenticated server; clients never mutate rooms.
+    match /mixed_debate_rooms/{roomId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.memberUids;
+      allow write: if false;
+      match /{collection}/{document} {
+        allow read: if signedIn() && collection in ['messages', 'recordings'] &&
+          request.auth.uid in get(/databases/$(database)/documents/mixed_debate_rooms/$(roomId)).data.memberUids;
+        allow write: if false;
+      }
+    }
+    match /mixed_debate_usage/{uid} { allow read, write: if false; }
+
+    // Shared text debate beta: clients can only read rooms they joined.
+    match /live_debate_rooms/{roomId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.memberUids;
+      allow write: if false;
+      match /messages/{messageId} {
+        allow read: if signedIn() && request.auth.uid in
+          get(/databases/$(database)/documents/live_debate_rooms/$(roomId)).data.memberUids;
+        allow write: if false;
+      }
+    }
+    match /live_debate_usage/{uid} { allow read, write: if false; }
+    function companionVerified() { return signedIn() && request.auth.token.email_verified == true; }
+    function connectedPeople(sharingUid, viewerUid) {
+      let contactPath = /databases/$(database)/documents/companion_contacts/$(sharingUid)/people/$(viewerUid);
+      let contact = get(contactPath).data;
+      let link = get(/databases/$(database)/documents/companion_connections/$(contact.connectionId)).data;
+      return exists(contactPath) && link.status == 'accepted'
+        && ((link.fromUid == sharingUid && link.toUid == viewerUid)
+          || (link.toUid == sharingUid && link.fromUid == viewerUid));
+    }
+    match /companion_connections/{connectionId} {
+      allow read: if companionVerified() && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+      allow create: if companionVerified()
+        && request.resource.data.keys().hasOnly(['fromUid','toUid','fromName','status','createdAt','updatedAt'])
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string && request.resource.data.toUid.size() > 0 && request.resource.data.toUid.size() <= 128
+        && request.resource.data.toUid != request.auth.uid
+        && request.resource.data.fromName is string && request.resource.data.fromName.size() <= 100
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time;
+      allow update: if companionVerified()
+        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt'])
+        && request.resource.data.updatedAt == request.time
+        && ((resource.data.status == 'pending' && resource.data.toUid == request.auth.uid && request.resource.data.status == 'accepted')
+          || request.resource.data.status == 'revoked');
+      allow delete: if false;
+    }
+    match /companion_contacts/{contactUid}/people/{peerUid} {
+      function validContact() {
+        let data = request.resource.data;
+        let link = get(/databases/$(database)/documents/companion_connections/$(data.connectionId)).data;
+        return data.keys().hasOnly(['peerUid','connectionId','name','relation','updatedAt'])
+          && data.peerUid == peerUid && data.connectionId is string
+          && data.name is string && data.name.size() > 0 && data.name.size() <= 128
+          && data.relation in ['family','friend','guardian','teammate']
+          && data.updatedAt == request.time
+          && ((link.fromUid == contactUid && link.toUid == peerUid)
+            || (link.toUid == contactUid && link.fromUid == peerUid));
+      }
+      allow read, delete: if owner(contactUid);
+      allow create, update: if companionVerified() && owner(contactUid) && validContact();
+    }
+    match /companion_contacts/{contactUid}/groups/{groupId} {
+      allow read, delete: if owner(contactUid);
+      allow create, update: if companionVerified() && owner(contactUid)
+        && request.resource.data.keys().hasOnly(['name','memberUids','updatedAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
+        && request.resource.data.memberUids is list && request.resource.data.memberUids.size() <= 50
+        && request.resource.data.updatedAt == request.time;
+    }
+    // Legacy requests can be read/removed by their parties; new clients use mutual invitations.
+    match /safety_requests/{sharingUid}/viewers/{viewerUid} {
+      allow read, delete: if owner(sharingUid) || owner(viewerUid);
+      allow create, update: if false;
+    }
+    match /safety_shares/{sharingUid} {
+      function validPayload() {
+        let data = request.resource.data;
+        return data.ownerUid == sharingUid
+          && data.keys().hasOnly(['ownerUid','viewerUids','searchViewerUids','active','mode','latitude','longitude','route','updatedAt','expiresAt'])
+          && data.get('viewerUids',[]) is list && data.get('viewerUids',[]).size() <= 50
+          && data.get('searchViewerUids',[]) is list
+          && data.get('searchViewerUids',[]).hasOnly(data.get('viewerUids',[]))
+          && (!('route' in data) || (data.route is list && data.route.size() <= 500))
+          && (!('latitude' in data) || (data.latitude is number && data.latitude >= -90 && data.latitude <= 90))
+          && (!('longitude' in data) || (data.longitude is number && data.longitude >= -180 && data.longitude <= 180));
+      }
+      function livePayload() {
+        return request.resource.data.get('active',false) != true || (
+          request.resource.data.latitude is number && request.resource.data.longitude is number
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.expiresAt > request.time
+          && request.resource.data.expiresAt <= request.time + duration.value(3,'m'));
+      }
+      allow get: if owner(sharingUid) || (companionVerified()
+        && resource.data.get('active',false) == true && resource.data.expiresAt > request.time
+        && request.auth.uid in resource.data.get('viewerUids',[]) && connectedPeople(sharingUid,request.auth.uid));
+      allow list: if false;
+      allow create: if companionVerified() && owner(sharingUid) && validPayload() && livePayload();
+      allow update: if companionVerified() && owner(sharingUid) && validPayload()
+        && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewerUids','searchViewerUids']) || livePayload());
+      allow delete: if owner(sharingUid);
+    }
+
+    // Add inside match /databases/{database}/documents, beside the V1.7 guardian rules.
+    // The existing safety_shares viewer list remains the single approval/revocation source.
+    match /hiking_search_records/{sharingUid} {
+      function searchViewer() {
+        return companionVerified()
+          && exists(/databases/$(database)/documents/safety_shares/$(sharingUid))
+          && request.auth.uid in get(/databases/$(database)/documents/safety_shares/$(sharingUid)).data.get('searchViewerUids', [])
+          && connectedPeople(sharingUid, request.auth.uid);
+      }
+      function validSearch() {
+        return request.resource.data.keys().hasAll(['ownerUid','tripId','active','startedAt','plannedReturnAt','latitude','longitude','observedAt','route','pointCount','droppedPoints','updatedAt','retainUntil'])
+          && request.resource.data.keys().hasOnly(['ownerUid','tripId','active','startedAt','plannedReturnAt','latitude','longitude','observedAt','route','pointCount','droppedPoints','updatedAt','retainUntil'])
+          && request.resource.data.ownerUid == sharingUid
+          && request.resource.data.tripId is string && request.resource.data.tripId.size() <= 160
+          && request.resource.data.active == true
+          && request.resource.data.startedAt is timestamp
+          && (request.resource.data.plannedReturnAt == null || request.resource.data.plannedReturnAt is timestamp)
+          && request.resource.data.latitude is number && request.resource.data.latitude >= -90 && request.resource.data.latitude <= 90
+          && request.resource.data.longitude is number && request.resource.data.longitude >= -180 && request.resource.data.longitude <= 180
+          && request.resource.data.observedAt is timestamp
+          && request.resource.data.observedAt <= request.time + duration.value(5, 'm')
+          && request.resource.data.route is list && request.resource.data.route.size() >= 1 && request.resource.data.route.size() <= 4000
+          && request.resource.data.pointCount is int && request.resource.data.pointCount >= request.resource.data.route.size() && request.resource.data.pointCount <= 10000
+          && request.resource.data.droppedPoints is int && request.resource.data.droppedPoints >= 0
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.retainUntil is timestamp
+          && request.resource.data.retainUntil > request.time
+          && request.resource.data.retainUntil <= request.time + duration.value(24, 'h');
+      }
+      allow get: if owner(sharingUid) || (searchViewer()
+        && resource.data.active == true && resource.data.retainUntil > request.time);
+      allow list: if false;
+      allow create, update: if companionVerified() && owner(sharingUid) && validSearch();
+      allow delete: if owner(sharingUid);
+    }
+
+  }
+}

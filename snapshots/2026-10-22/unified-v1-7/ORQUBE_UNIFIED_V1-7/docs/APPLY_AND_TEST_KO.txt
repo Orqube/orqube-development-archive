@@ -1,0 +1,34 @@
+ORQUBE QR REWARD 3-WAY + ROUTING PATCH (2026-09-19)
+
+기준: swap-center16.zip
+
+포함:
+1) /reward 및 /reward/ 모두 QR 수령 페이지로 진입
+2) 기존 QR 실제 지급 요청/중복 방지/TX 기록 패치 포함
+3) 고객 수령 선택 UI: MetaMask / Kaia Wallet / 지갑 없음·ORQUBE 자동지갑
+4) 기존 기능 최대 보존
+
+중요:
+- 현재 인쇄 QR 주소는 https://www.orqubic.com/reward?... 입니다.
+- 따라서 PC localhost에서 새 코드를 실행해도 휴대폰 QR은 운영 중인 www.orqubic.com을 엽니다.
+- 새 /reward 화면을 휴대폰에서 확인하려면 Hosting에 새 build/web을 배포해야 합니다.
+- 배포 전 PC 로컬에서는 주소창에 직접
+  http://localhost:<포트>/reward?project=<실제PROJECT_ID>&campaign=default
+  를 넣어 라우팅 화면을 확인할 수 있습니다.
+
+자동지갑 보안:
+- 이번 패치는 3번째 선택 UI까지 넣되, 개인키를 브라우저/localStorage/Firestore 평문에 저장하는 임시 자동지갑은 의도적으로 구현하지 않았습니다.
+- 실제 자동생성+자동지급은 MPC/Embedded Wallet 같은 안전한 키 관리 제공자 연결이 필요합니다.
+
+적용:
+- 패치 폴더의 파일을 프로젝트 동일 경로에 덮어쓰기
+- flutter clean
+- flutter pub get
+- flutter run -d chrome
+
+실제 지급 endpoint를 쓰려면 Functions/Rules 배포 필요:
+  firebase deploy --only functions:qrRewardClaim,firestore:rules
+
+운영 웹 확인 시 마지막에:
+  flutter build web
+  firebase deploy --only hosting

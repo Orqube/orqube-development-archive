@@ -1,0 +1,17 @@
+{
+  "name": "orqube-ai-functions",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "check": "node --check index.js && node --check ai_launch_v081.js && node --check ai_token_marketing.js && node --check ai_debate.js && node --check admin_access.js && node --check debate_speech.js && node --check debate_speech_profiles.js && node --check debate_output.js && node --check mixed_debate_rooms.js && node --check mixed_debate_policy.js && node --check auto_marketing.js && node --check auto_marketing_core.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.0.0",
+    "solc": "0.8.30"
+  }
+}

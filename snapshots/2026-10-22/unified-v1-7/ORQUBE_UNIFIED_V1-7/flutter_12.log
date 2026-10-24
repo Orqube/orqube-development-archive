@@ -1,0 +1,78 @@
+Flutter crash report.
+Please report a bug at https://github.com/flutter/flutter/issues.
+
+## command
+
+flutter run -d chrome
+
+## exception
+
+WipError: WipError -32000 Cannot find context with specified id
+
+```
+```
+
+## flutter doctor
+
+```
+[32m[✓][39m Flutter (Channel stable, 3.44.1, on Microsoft Windows [Version
+    10.0.19045.6466], locale ko-KR) [27403.6s]
+    [32m•[39m Flutter version 3.44.1 on channel stable at C:\flutter
+    [32m•[39m Upstream repository https://github.com/flutter/flutter.git
+    [32m•[39m Framework revision 924134a44c (4 months ago), 2026-05-29 12:13:22 -0400
+    [32m•[39m Engine revision c416acfeb8
+    [32m•[39m Dart version 3.12.1
+    [32m•[39m DevTools version 2.57.0
+    [32m•[39m Feature flags: enable-web, enable-linux-desktop, enable-macos-desktop,
+      enable-windows-desktop, enable-android, enable-ios, cli-animations,
+      enable-native-assets, enable-swift-package-manager,
+      omit-legacy-version-file, enable-lldb-debugging, enable-uiscene-migration
+
+[31m[☠][39m Windows Version (the doctor check crashed)
+    [31m✗[39m Due to an error, the doctor check did not complete. If the error message
+      below is not helpful, please let us know about this issue at
+      https://github.com/flutter/flutter/issues.
+    [31m✗[39m Exception: Windows Version exceeded maximum allowed duration of
+      0:04:30.000000
+    [32m•[39m 
+
+[31m[☠][39m Android toolchain - develop for Android devices (the doctor check crashed)
+    [31m✗[39m Due to an error, the doctor check did not complete. If the error message
+      below is not helpful, please let us know about this issue at
+      https://github.com/flutter/flutter/issues.
+    [31m✗[39m Exception: Android toolchain - develop for Android devices exceeded maximum
+      allowed duration of 0:04:30.000000
+    [32m•[39m 
+
+[32m[✓][39m Chrome - develop for the web [16551.4s]
+    [32m•[39m Chrome at C:\Program Files\Google\Chrome\Application\chrome.exe
+
+[32m[✓][39m Visual Studio - develop Windows apps (Visual Studio Community 2026 18.7.0)
+    [16551.4s]
+    [32m•[39m Visual Studio at C:\Program Files\Microsoft Visual Studio\18\Community
+    [32m•[39m Visual Studio Community 2026 version 18.7.11903.348
+    [32m•[39m Windows 10 SDK version 10.0.26100.0
+
+[32m[✓][39m Connected device (3 available) [17.3s]
+    [32m•[39m Windows (desktop) • windows • windows-x64    • Microsoft Windows [Version
+      10.0.19045.6466]
+    [32m•[39m Chrome (web)      • chrome  • web-javascript • Google Chrome 155.0.8059.39
+    [32m•[39m Edge (web)        • edge    • web-javascript • Microsoft Edge 155.0.4283.45
+
+[33m[!][39m Network resources [17.1s]
+    [31m✗[39m A network error occurred while checking "https://pub.dev/": 소켓이 연결되어 있지 않거나
+      Sendto 호출을 사용하여 데이터그램 소켓에 보내는 경우에 주소가 제공되지 않아서 데이터를 보내거나 받도록 요청할 수 없습니다
+    [31m✗[39m A network error occurred while checking "https://storage.googleapis.com/":
+      소켓이 연결되어 있지 않거나 Sendto 호출을 사용하여 데이터그램 소켓에 보내는 경우에 주소가 제공되지 않아서 데이터를 보내거나 받도록
+      요청할 수 없습니다
+    [31m✗[39m A network error occurred while checking "https://maven.google.com/": 소켓이
+      연결되어 있지 않거나 Sendto 호출을 사용하여 데이터그램 소켓에 보내는 경우에 주소가 제공되지 않아서 데이터를 보내거나 받도록 요청할
+      수 없습니다
+    [31m✗[39m A network error occurred while checking "https://cocoapods.org/": 소켓이 연결되어
+      있지 않거나 Sendto 호출을 사용하여 데이터그램 소켓에 보내는 경우에 주소가 제공되지 않아서 데이터를 보내거나 받도록 요청할 수
+      없습니다
+    [31m✗[39m A network error occurred while checking "https://github.com/": 소켓이 연결되어 있지
+      않거나 Sendto 호출을 사용하여 데이터그램 소켓에 보내는 경우에 주소가 제공되지 않아서 데이터를 보내거나 받도록 요청할 수 없습니다
+
+[33m![39m Doctor found issues in 3 categories.
+```

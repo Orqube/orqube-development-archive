@@ -1,0 +1,39 @@
+ORQUBE 통합 V1
+개발용 DEV42 토큰 스트림 수정본을 기준으로 통합했습니다.
+- 개발형 첫 화면과 개발 기능, 영상 게시판, 토론 3종 유지
+- 첫 화면 영상 게시판 위에 평화대화 사이트 링크(6개국어) 추가
+- 채굴 대시보드는 공개형 V24-5의 계정별 상태 관리 버전 유지
+- 기본 채굴: 24시간, 시간당 0.2 ORBS(기존 보너스 적용 로직 유지)
+- DEV43의 자연 배경 및 토큰 컴파일 변경은 포함하지 않음
+- APK 서버와 평화 사이트는 별도 운영 유지
+
+실행(이 파일과 pubspec.yaml이 있는 폴더)
+flutter pub get
+flutter run -d chrome
+
+웹 실행 검토 후 배포
+flutter build web --release
+firebase deploy --project orqube-576e7 --only hosting
+빌드가 실패하면 배포하지 마세요.
+이 명령은 본 사이트 Hosting만 배포합니다. Functions/Rules는 자동 변경하지 않습니다.
+
+영상은 관리자 화면에서 YouTube 링크를 등록하는 게시판입니다. 영상 파일 직접 업로드 기능이라고 보장하지 않습니다.
+검증: Dart 구문, 상대 import 파일, ZIP 무결성 검사. Flutter SDK 없어 analyze/실행/라이브 서버 검증은 미실시.
+
+V1.1 추가
+- 하단 Pi 로그인 연동 버튼: 기존 Pi 테스트 웹앱(https://orqube-pi-test-576e7.web.app)으로 이동. 이 버튼 자체가 본 사이트 계정과 Pi 계정의 연결 완료를 의미하지 않습니다. Pi Browser에서 기존 Pi 앱의 로그인 절차를 진행하세요.
+- 관리자 운영 대시보드 맨 위에 YouTube 링크 등록 바로가기 추가. 영상 등록 화면 저장 버튼에도 이름 명시.
+
+V1.2 관리자 설정
+- 인증된 byd1009@naver.com을 화면/서버/Firestore 관리자 허용. disabled 계정은 제외.
+- AI 마케팅 화면/캠페인/서버 엔드포인트는 관리자 전용.
+- 관리자 → AI 마케팅 센터 → 관리자 AI 마케팅 열기.
+- 이메일 인증 후 다시 로그인하세요. 서버에 실제 적용하려면 다음을 배포해야 합니다.
+firebase deploy --project orqube-576e7 --only "functions:ai:startTokenLaunchMarketing,functions:ai:createFusionMarketingCampaign,functions:ai:manageFusionMarketingCampaign,functions:ai:analyzeAiTokenMarketingCandidate,functions:ai:manageAutoMarketing,firestore:rules"
+위 명령 성공 후 웹 빌드/Hosting 배포.
+
+V1.3
+- 투자/기술/사업 협업 안내: 하단 CONTACT 문의창 안의 펼침 항목에 복원.
+- 홈 토큰 목록: 왼쪽 자동 흐름, 수동 조작 후 8초 정지, 움직임 줄이기 설정 존중.
+- 홈 12개 표시 제한 해제. 기존 launch_projects 내 본인 토큰과 공개 토큰을 모두 정렬해 순환 표시.
+- 다른 계정 또는 다른 저장소의 과거 토큰은 자동 복원되지 않습니다. 실서버 확인은 별도 필요.

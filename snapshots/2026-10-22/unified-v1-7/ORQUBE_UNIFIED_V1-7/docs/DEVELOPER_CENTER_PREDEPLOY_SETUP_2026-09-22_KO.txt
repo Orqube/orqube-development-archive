@@ -1,0 +1,43 @@
+ORQUBE Developer Center - Pre-Deploy Setup Patch (2026-09-22)
+
+목적
+- 배포를 유보한 상태에서 토큰 개발자가 운영 정책을 먼저 설정할 수 있도록 합니다.
+- 설정 저장만으로 컨트랙트 배포, Mainnet 전송, PAY/VERIFY 활성화가 실행되지 않습니다.
+
+추가 기능
+1. TOKEN PROFILE 상단에 DEVELOPER CENTER 진입 카드 추가
+2. QR REWARD 정책
+   - 기능 ON/OFF 준비값
+   - 1회 지급량
+   - 1인 하루 최대 횟수
+   - 총 지급 한도
+   - 유효 기간
+   - 재수령: 1회/매일/N일마다/월1회/제한없음
+   - 지갑당 최대 누적 횟수 및 반복요청 차단 간격
+3. 수령자/지갑
+   - 비회원 수령
+   - MetaMask / Kaia Wallet
+   - 지갑이 없을 때 자동지갑
+   - 수령 방법 선택
+4. 네트워크/실행
+   - 향후 TESTNET / MAINNET 기본값 준비
+   - 실제 전송은 강제 LOCKED
+   - 발행자 최종 승인 / Mainnet 2차 확인
+5. 보안
+   - 지갑/기기 중복 방지 정책
+   - 반복요청 차단
+   - TX Hash 기록 필수
+6. TX/CLAIM 요약
+   - 지급대기 / 지급완료 / 실패 건수 표시
+7. 기존 QR REWARD 상세 운영화면 유지 및 연결
+
+Firestore 저장
+launch_projects/{projectId}.developerSettings
+- deploymentDeferred: true
+- executionLocked: true
+- liveTransferEnabled: false
+- qrReward: {...운영 설정...}
+
+주의
+- 이 패치는 배포를 실행하지 않습니다.
+- 실제 서버 중복정책 적용, 자동지갑 키 관리, Mainnet 자동 전송은 다음 연결 단계에서 별도 검증이 필요합니다.

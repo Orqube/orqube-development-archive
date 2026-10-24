@@ -1,0 +1,20 @@
+ORQUBE 개발용 최종본 업데이트
+
+하단 안전동행: 안심동행 V2.4.2 최종 소스 통합. 이용객/보호자 선택, 내 사람 연결, 공유·QR, 내장 한글 폰트.
+하단 3자토론: 기존 AI 3자 토론 / 사람·AI 선택형 / 자료 동반형 3종 대시보드 연결.
+혼합 토론: 선택지 1·3·5·10·20·30분, 서버 최대 30분. 기존 미시작 60/120분 방도 시작할 때 30분으로 제한.
+이미 시작된 기존 방의 종료 시간은 변경하지 않습니다.
+
+PowerShell: 압축을 푼 프로젝트 폴더에서
+flutter pub get
+flutter run -d chrome
+
+배포:
+flutter build web --release
+firebase deploy --only "hosting,firestore:rules,functions:ai:manageMixedDebateRoom"
+
+서버 배포를 생략하면 30분 서버 제한이 적용되지 않습니다.
+Firebase CLI가 functions:ai:manageMixedDebateRoom 선택자를 지원하지 않는 경우 기존 사용 방식대로 functions:ai 코드베이스를 배포하세요.
+안전동행의 지도·QR·계정은 추가된 패키지를 사용하므로 flutter pub get을 반드시 실행하세요.
+기존 프로젝트 설정·토론 3종·스테이킹 등 소스는 보존했습니다.
+Flutter SDK가 없어 Flutter 분석·웹/APK 빌드는 실행하지 못했습니다. Node 문법 검사·기존 서버 테스트 결과는 별도 검증 기록을 확인하세요.

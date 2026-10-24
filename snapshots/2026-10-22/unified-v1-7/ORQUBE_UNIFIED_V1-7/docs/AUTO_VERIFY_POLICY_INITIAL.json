@@ -1,0 +1,10 @@
+{
+  "enabled": true,
+  "kaiFee": 500,
+  "orbsFee": 100,
+  "kaiEnabled": true,
+  "orbsEnabled": true,
+  "treasuryAddress": "",
+  "orbsContractAddress": "",
+  "orbsDecimals": 18
+}

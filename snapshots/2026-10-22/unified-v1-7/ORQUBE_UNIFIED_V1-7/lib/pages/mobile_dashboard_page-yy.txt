@@ -1,0 +1,3736 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:math' as math;
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
+import 'wallet_page.dart';
+import 'nft_dashboard_page.dart';
+import 'profile_page.dart';
+import 'airsoft_hub_page.dart';
+import 'airsoft_map_page.dart';
+import 'attendance_page.dart';
+import 'news_page.dart';
+import 'community_hub_page.dart';
+import 'ranking_page.dart';
+import 'notification_center_page.dart';
+import 'item_event_page.dart';
+import 'whitepaper_center_page.dart';
+import 'login_page.dart';
+import '../services/firebase_service.dart';
+import '../services/auth_session_service.dart';
+import 'friend_finder_page.dart';
+import 'referral_page-bp.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../utils/orqube_i18n.dart';
+import '../adsense/adsense_ad.dart';
+
+/// ORQUBE V14 Premium Mobile Dashboard
+///
+/// V14 Premium integrated features:
+/// - Compact profile + ORBS balance two-column layout
+/// - Four-decimal ORBS display
+/// - Firestore mining state persistence
+/// - Automatic stop after 24 hours
+/// - Rewarded AdMob before starting mining on Android/iOS
+/// - Daily reward, dog-tag event, and weekly operation event
+/// - Chrome Web safe fallback (AdMob unsupported)
+///
+/// Required packages:
+///   cloud_firestore
+///   firebase_auth
+///   google_mobile_ads
+///
+/// Important:
+/// 1) Android에서는 [MobileAds.instance.initialize()]가 필요합니다.
+///    이 파일에서도 초기화하지만, main_mobile.dart에서 한 번 초기화해도 됩니다.
+/// 2) 아래 AdMob ID는 Google 공식 테스트 보상형 광고 ID입니다.
+///    출시 전 반드시 본인의 AdMob 보상형 광고 단위 ID로 교체하세요.
+/// 3) Chrome Web에서는 AdMob이 지원되지 않으므로 광고 없이 테스트 채굴을 시작합니다.
+class MobileDashboardPage extends StatelessWidget {
+  const MobileDashboardPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      initialData: FirebaseAuth.instance.currentUser,
+      builder: (context, snapshot) {
+        final uid = snapshot.data?.uid;
+        return _AccountDashboard(key: ValueKey(uid), uid: uid);
+      },
+    );
+  }
+}
+
+class _AccountDashboard extends StatefulWidget {
+  const _AccountDashboard({super.key, required this.uid});
+  final String? uid;
+
+  @override
+  State<_AccountDashboard> createState() => _MobileDashboardPageState();
+}
+
+class _MobileDashboardPageState extends State<_AccountDashboard>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
+  bool _profileReady = false;
+  bool get _ownsSession => FirebaseAuth.instance.currentUser?.uid == widget.uid;
+  static const String dashboardVersion = '21.0.0';
+  static const Color bg = Color(0xFF03040B);
+  static const Color panel = Color(0xE60A0B18);
+  static const Color purple = Color(0xFF8B2CF6);
+  static const Color violet = Color(0xFFB85CFF);
+  static const Color lime = Color(0xFFD7FF35);
+  static const Color green = Color(0xFF5CFF8A);
+
+  static const Duration miningDuration = Duration(hours: 24);
+
+  /// 약 1시간당 0.5 ORBS.
+  /// 실제 서비스 출시 전 토크노믹스에 맞춰 조정하세요.
+  static const double orbsPerSecond = 0.5 / 3600;
+
+  static const bool _useTestAds = bool.fromEnvironment(
+    'ADMOB_TEST_MODE',
+    defaultValue: true,
+  );
+
+  static const String _androidRewardedProductionId = String.fromEnvironment(
+    'ADMOB_ANDROID_REWARDED_ID',
+    defaultValue: '',
+  );
+  static const String _iosRewardedProductionId = String.fromEnvironment(
+    'ADMOB_IOS_REWARDED_ID',
+    defaultValue: '',
+  );
+
+  static const String _androidRewardedTestId =
+      'ca-app-pub-3940256099942544/5224354917';
+  static const String _iosRewardedTestId =
+      'ca-app-pub-3940256099942544/1712485313';
+
+  late final AnimationController _ringController;
+  late final AnimationController _pulseController;
+  late final AnimationController _starsController;
+  late final AnimationController _logoController;
+
+  Timer? _ticker;
+  Timer? _marketTicker;
+  RewardedAd? _rewardedAd;
+
+  static const String _cryptoMarketEndpoint =
+      'https://api.coingecko.com/api/v3/coins/markets'
+      '?vs_currency=usd'
+      '&ids=bitcoin,ethereum,binancecoin,solana,ripple,kaia'
+      '&order=market_cap_desc'
+      '&per_page=6'
+      '&page=1'
+      '&sparkline=false'
+      '&price_change_percentage=24h';
+
+  final List<_CryptoQuote> _cryptoQuotes = <_CryptoQuote>[];
+  bool _cryptoLoading = false;
+  String? _cryptoError;
+  DateTime? _cryptoUpdatedAt;
+
+  bool _loading = true;
+  bool _startingMining = false;
+  bool _adLoading = false;
+  bool _dailyClaimed = false;
+  bool _dogTagClaimedToday = false;
+  bool _weeklyCodeCompleted = false;
+  bool _isMining = false;
+
+  // Values are loaded from admin_config/global. Test ads remain the safe fallback.
+  bool _adminAdEnabled = true;
+  bool _adminUseTestAds = true;
+  String _adminAndroidRewardedId = '';
+  String _adminIosRewardedId = '';
+
+  String? _todayDogTag;
+  String? _lastDogTagDayKey;
+  String? _completedWeeklyEventId;
+  int _dogTagCount = 0;
+  int _weeklyOperationWins = 0;
+
+  double _miningRate = 1.00;
+  double _storedOrbs = 0.0;
+  double _displayOrbs = 0.0;
+  int _points = 0;
+  int _attendance = 0;
+  int _referral = 0;
+  int _nftCount = 0;
+
+  DateTime? _miningStartedAt;
+  DateTime? _miningEndsAt;
+  DateTime? _lastPersistAt;
+
+  int _selectedIndex = 1;
+  String _nickname = '로그인 필요';
+  String _level = 'LV.0';
+  String _rank = '';
+  String _walletAddress = '';
+  String _languageCode = 'ko';
+
+  static const Map<String, String> _languageLabels = {
+    'ko': '한국어',
+    'en': 'English',
+    'ja': '日本語',
+    'zh': '中文',
+    'fr': 'Français',
+    'pt': 'Português',
+  };
+
+  String _tr(
+    String ko,
+    String en, {
+    String? ja,
+    String? zh,
+    String? fr,
+    String? pt,
+  }) {
+    if (_languageCode == 'ja' && ja != null) return ja;
+    if (_languageCode == 'zh' && zh != null) return zh;
+    if (_languageCode == 'fr' && fr != null) return fr;
+    if (_languageCode == 'pt' && pt != null) return pt;
+    return OrqubeI18n.pair(_languageCode, ko, en);
+  }
+
+  Future<void> _changeLanguage(String? code) async {
+    if (code == null || !_languageLabels.containsKey(code)) return;
+    OrqubeI18n.setLanguage(code);
+    setState(() => _languageCode = code);
+    final doc = _userDoc;
+    if (doc != null) {
+      try {
+        await doc.set({
+          'language': code,
+          'languageUpdatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } catch (e) {
+        _message(_tr('언어 설정 저장에 실패했습니다: $e', 'Could not save language: $e'));
+      }
+    }
+  }
+
+  User? get _user => _ownsSession ? FirebaseAuth.instance.currentUser : null;
+
+  DocumentReference<Map<String, dynamic>>? get _userDoc {
+    final user = _user;
+    if (user == null) return null;
+    return FirebaseFirestore.instance.collection('users').doc(user.uid);
+  }
+
+  String _dayKey([DateTime? value]) {
+    final d = (value ?? DateTime.now()).toLocal();
+    return '${d.year.toString().padLeft(4, '0')}-'
+        '${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+  }
+
+  int _isoWeekNumber(DateTime date) {
+    final d = DateTime(date.year, date.month, date.day);
+    final thursday = d.add(Duration(days: 4 - d.weekday));
+    final firstThursday = DateTime(thursday.year, 1, 4);
+    final firstWeekThursday = firstThursday.add(
+      Duration(days: 4 - firstThursday.weekday),
+    );
+    return 1 + thursday.difference(firstWeekThursday).inDays ~/ 7;
+  }
+
+  String _weekKey([DateTime? value]) {
+    final d = (value ?? DateTime.now()).toLocal();
+    final thursday = d.add(Duration(days: 4 - d.weekday));
+    final weekYear = thursday.year;
+    final week = _isoWeekNumber(d);
+    return '$weekYear-W${week.toString().padLeft(2, '0')}';
+  }
+
+  _WeeklyOperation get _weeklyOperation {
+    const operations = <_WeeklyOperation>[
+      _WeeklyOperation(
+        code: 'FALCON',
+        title: 'OPERATION FALCON',
+        hint: 'ORQUBE 비행 로고와 어울리는 매의 영어 이름',
+      ),
+      _WeeklyOperation(
+        code: 'ORBIT',
+        title: 'OPERATION ORBIT',
+        hint: '행성이 별 주위를 도는 궤도를 뜻하는 영어 단어',
+      ),
+      _WeeklyOperation(
+        code: 'BRAVO',
+        title: 'OPERATION BRAVO',
+        hint: 'NATO 음성 알파벳에서 B를 나타내는 단어',
+      ),
+      _WeeklyOperation(
+        code: 'VECTOR',
+        title: 'OPERATION VECTOR',
+        hint: '방향과 크기를 함께 가진 값을 뜻하는 영어 단어',
+      ),
+    ];
+    final index = _isoWeekNumber(DateTime.now()) % operations.length;
+    return operations[index];
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    _ringController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 9),
+    )..repeat();
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+
+    _starsController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 22),
+    )..repeat();
+
+    _logoController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 12),
+    )..repeat();
+
+    _initializePage();
+  }
+
+  Future<void> _initializePage() async {
+    await _loadAdAdminConfig();
+    if (!mounted || !_ownsSession) return;
+
+    // Mobile Ads SDK는 main_mobile.dart에서 한 번만 초기화합니다.
+    if (!kIsWeb && _adminAdEnabled) {
+      _loadRewardedAd();
+    }
+
+    await _loadUserData();
+    if (!mounted || !_ownsSession) return;
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _onTick());
+
+    // GLOBAL CRYPTO MARKET은 채굴/공지 로딩과 독립적으로 동작합니다.
+    // Keyless public market data에 맞춰 60초 간격으로만 갱신합니다.
+    unawaited(_loadCryptoMarket());
+    _marketTicker = Timer.periodic(
+      const Duration(seconds: 60),
+      (_) => _loadCryptoMarket(),
+    );
+
+    if (mounted) {
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _loadAdAdminConfig() async {
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('admin_config')
+          .doc('global')
+          .get();
+      final data = snap.data();
+      if (data == null) return;
+      _adminAdEnabled = data['adEnabled'] != false;
+      _adminUseTestAds = data['adTestMode'] ?? true;
+      _adminAndroidRewardedId =
+          '${data['androidRewardedAdUnitId'] ?? ''}'.trim();
+      _adminIosRewardedId = '${data['iosRewardedAdUnitId'] ?? ''}'.trim();
+    } catch (e) {
+      // Keep safe test-ad defaults when config is unavailable.
+      debugPrint('Ad admin config load skipped: $e');
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _persistMiningState();
+    } else if (state == AppLifecycleState.resumed) {
+      _loadUserData();
+      unawaited(_loadCryptoMarket());
+      if (!kIsWeb && _adminAdEnabled && _rewardedAd == null) {
+        _loadRewardedAd();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _persistMiningState();
+    _ticker?.cancel();
+    _marketTicker?.cancel();
+    _rewardedAd?.dispose();
+    _ringController.dispose();
+    _pulseController.dispose();
+    _starsController.dispose();
+    _logoController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadCryptoMarket({bool showFeedback = false}) async {
+    if (_cryptoLoading) return;
+
+    if (mounted) {
+      setState(() {
+        _cryptoLoading = true;
+        if (_cryptoQuotes.isEmpty) _cryptoError = null;
+      });
+    } else {
+      _cryptoLoading = true;
+    }
+
+    try {
+      final response = await http
+          .get(Uri.parse(_cryptoMarketEndpoint))
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode != 200) {
+        throw Exception('HTTP ${response.statusCode}');
+      }
+
+      final decoded = jsonDecode(response.body);
+      if (decoded is! List) {
+        throw const FormatException('Unexpected market response');
+      }
+
+      final quotes = <_CryptoQuote>[];
+      for (final raw in decoded) {
+        if (raw is! Map<String, dynamic>) continue;
+        final quote = _CryptoQuote.fromJson(raw);
+        if (quote.price > 0) quotes.add(quote);
+      }
+
+      if (quotes.isEmpty) {
+        throw const FormatException('No market quotes received');
+      }
+
+      // 화면 순서는 ORQUBE에서 보기 좋은 고정 순서를 유지합니다.
+      const order = <String>['BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'KAIA'];
+      quotes.sort((a, b) {
+        final ai = order.indexOf(a.symbol);
+        final bi = order.indexOf(b.symbol);
+        return (ai < 0 ? 999 : ai).compareTo(bi < 0 ? 999 : bi);
+      });
+
+      if (!mounted || !_ownsSession) return;
+      setState(() {
+        _cryptoQuotes
+          ..clear()
+          ..addAll(quotes);
+        _cryptoUpdatedAt = DateTime.now();
+        _cryptoError = null;
+      });
+
+      if (showFeedback) {
+        _message(
+          _tr(
+            'GLOBAL CRYPTO MARKET 시세를 새로고침했습니다.',
+            'GLOBAL CRYPTO MARKET refreshed.',
+            ja: 'GLOBAL CRYPTO MARKETを更新しました。',
+            zh: 'GLOBAL CRYPTO MARKET 已刷新。',
+            fr: 'GLOBAL CRYPTO MARKET a été actualisé.',
+            pt: 'GLOBAL CRYPTO MARKET foi atualizado.',
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted || !_ownsSession) return;
+      setState(() => _cryptoError = e.toString());
+      if (showFeedback) {
+        _message(
+          _tr(
+            '실시간 시세를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+            'Could not load live prices. Please try again shortly.',
+            ja: 'リアルタイム価格を取得できませんでした。しばらくしてから再試行してください。',
+            zh: '无法加载实时价格，请稍后重试。',
+            fr: 'Impossible de charger les cours en direct. Réessayez bientôt.',
+            pt: 'Não foi possível carregar as cotações ao vivo. Tente novamente em breve.',
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _cryptoLoading = false);
+      } else {
+        _cryptoLoading = false;
+      }
+    }
+  }
+
+  String _formatUsd(double value) {
+    final decimals = value >= 1000
+        ? 2
+        : value >= 1
+        ? 3
+        : value >= 0.01
+        ? 4
+        : 6;
+    final raw = value.toStringAsFixed(decimals);
+    final parts = raw.split('.');
+    final whole = parts.first;
+    final buffer = StringBuffer();
+    for (int i = 0; i < whole.length; i++) {
+      final remaining = whole.length - i;
+      buffer.write(whole[i]);
+      if (remaining > 1 && remaining % 3 == 1) buffer.write(',');
+    }
+    return '\$${buffer.toString()}${parts.length > 1 ? '.${parts[1]}' : ''}';
+  }
+
+  String _cryptoUpdatedLabel() {
+    final value = _cryptoUpdatedAt;
+    if (value == null) return '--:--';
+    final local = value.toLocal();
+    return '${local.hour.toString().padLeft(2, '0')}:'
+        '${local.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _loadUserData() async {
+    final docRef = _userDoc;
+    if (docRef == null) {
+      _restoreLocalDefaults();
+      return;
+    }
+
+    try {
+      var snapshot = await docRef.get();
+      if (!mounted || !_ownsSession) return;
+      if (!snapshot.exists) {
+        await FirebaseService.createUserProfileIfNeeded();
+        if (!mounted || !_ownsSession) return;
+        snapshot = await docRef.get();
+        if (!mounted || !_ownsSession) return;
+      }
+      final data = snapshot.data();
+      if (data == null) throw StateError('사용자 프로필을 불러올 수 없습니다.');
+      _profileReady = true;
+
+      final savedNickname = '${data['nickname'] ?? ''}'.trim();
+      final authName = _user?.displayName?.trim() ?? '';
+      // Older builds wrote the founder's hardcoded sample name into new profiles.
+      // Use account-owned identity for that legacy default; never rewrite balances.
+      _nickname = savedNickname.isNotEmpty && savedNickname != '김명근'
+          ? savedNickname
+          : (authName.isNotEmpty ? authName : (_user?.email ?? 'ORQUBE USER'));
+      _level = data['level']?.toString() ?? _level;
+      _rank = data['rank']?.toString() ?? _rank;
+      _points = _readInt(data['points'], _points);
+      _storedOrbs = _readDouble(data['orbs'], _storedOrbs);
+      _miningRate = math.max(1.0, _readDouble(data['miningRate'], 1.0));
+      _attendance = _readInt(data['attendance'], _attendance);
+      _referral = _readInt(data['referralCount'], _referral);
+      _nftCount = _readInt(data['nftCount'], _nftCount);
+      _walletAddress =
+          data['walletAddress']?.toString().trim().isNotEmpty == true
+              ? data['walletAddress'].toString()
+              : _walletAddress;
+      final savedLanguage = data['language']?.toString();
+      if (savedLanguage != null && _languageLabels.containsKey(savedLanguage)) {
+        _languageCode = savedLanguage;
+        OrqubeI18n.setLanguage(savedLanguage);
+      }
+      _dailyClaimed = _isSameLocalDate(
+        _timestampToDate(data['lastDailyRewardAt']),
+        DateTime.now(),
+      );
+
+      _todayDogTag = data['dailyDogTag']?.toString();
+      _lastDogTagDayKey = data['dailyDogTagDayKey']?.toString();
+      _dogTagCount = _readInt(data['dogTagCount'], 0);
+      _dogTagClaimedToday = _lastDogTagDayKey == _dayKey();
+      _completedWeeklyEventId = data['weeklyCodeEventId']?.toString();
+      _weeklyOperationWins = _readInt(data['weeklyOperationWins'], 0);
+      _weeklyCodeCompleted = _completedWeeklyEventId == _weekKey();
+
+      final startedAt = _timestampToDate(data['miningStartedAt']);
+      final endsAt = _timestampToDate(data['miningEndsAt']);
+      final savedActive = data['miningActive'] == true;
+
+      _miningStartedAt = startedAt;
+      _miningEndsAt = endsAt;
+      _isMining =
+          savedActive &&
+          startedAt != null &&
+          endsAt != null &&
+          DateTime.now().isBefore(endsAt);
+
+      if (savedActive && !_isMining) {
+        await _finishMiningSession(persist: true);
+      } else {
+        _recalculateDisplayOrbs();
+      }
+    } catch (e) {
+      if (!mounted || !_ownsSession) return;
+      _profileReady = false;
+      _restoreLocalDefaults();
+      _message('저장된 채굴 정보를 불러오지 못했습니다: $e');
+    }
+
+    if (mounted) setState(() {});
+  }
+
+  void _restoreLocalDefaults() {
+    _isMining = false;
+    _miningStartedAt = null;
+    _miningEndsAt = null;
+    _displayOrbs = _storedOrbs;
+  }
+
+  int _readInt(dynamic value, int fallback) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  double _readDouble(dynamic value, double fallback) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  DateTime? _timestampToDate(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return null;
+  }
+
+  bool _isSameLocalDate(DateTime? a, DateTime b) {
+    if (a == null) return false;
+    final localA = a.toLocal();
+    final localB = b.toLocal();
+    return localA.year == localB.year &&
+        localA.month == localB.month &&
+        localA.day == localB.day;
+  }
+
+  void _onTick() {
+    if (!_ownsSession || !_profileReady) return;
+    if (!_isMining) return;
+
+    final endsAt = _miningEndsAt;
+    if (endsAt == null || !DateTime.now().isBefore(endsAt)) {
+      _finishMiningSession(persist: true);
+      return;
+    }
+
+    _recalculateDisplayOrbs();
+
+    final now = DateTime.now();
+    if (_lastPersistAt == null ||
+        now.difference(_lastPersistAt!) >= const Duration(seconds: 30)) {
+      _lastPersistAt = now;
+      _persistMiningState();
+    }
+
+    if (mounted) setState(() {});
+  }
+
+  void _recalculateDisplayOrbs() {
+    if (!_isMining || _miningStartedAt == null || _miningEndsAt == null) {
+      _displayOrbs = _storedOrbs;
+      return;
+    }
+
+    final now = DateTime.now();
+    final effectiveNow = now.isAfter(_miningEndsAt!) ? _miningEndsAt! : now;
+    final elapsed =
+        effectiveNow.difference(_miningStartedAt!).inMilliseconds / 1000.0;
+    _displayOrbs =
+        _storedOrbs + math.max(0, elapsed) * orbsPerSecond * _miningRate;
+  }
+
+  Duration get _remaining {
+    if (!_isMining || _miningEndsAt == null) return Duration.zero;
+    final duration = _miningEndsAt!.difference(DateTime.now());
+    return duration.isNegative ? Duration.zero : duration;
+  }
+
+  Duration get _elapsed {
+    if (!_isMining || _miningStartedAt == null) return Duration.zero;
+    final end =
+        DateTime.now().isAfter(_miningEndsAt ?? DateTime.now())
+            ? (_miningEndsAt ?? DateTime.now())
+            : DateTime.now();
+    final duration = end.difference(_miningStartedAt!);
+    return duration.isNegative ? Duration.zero : duration;
+  }
+
+  String _durationText(Duration value) {
+    final h = value.inHours.toString().padLeft(2, '0');
+    final m = (value.inMinutes % 60).toString().padLeft(2, '0');
+    final s = (value.inSeconds % 60).toString().padLeft(2, '0');
+    return '$h:$m:$s';
+  }
+
+  String _remainingText(Duration value) {
+    final h = value.inHours;
+    final m = value.inMinutes % 60;
+    final s = value.inSeconds % 60;
+    return '${h}H ${m.toString().padLeft(2, '0')}M '
+        '${s.toString().padLeft(2, '0')}S';
+  }
+
+  Future<void> _startMiningRequest() async {
+    if (_user == null) {
+      await _openLoginOnly();
+      return;
+    }
+    if (!_profileReady) {
+      await _loadUserData();
+      if (!mounted || !_ownsSession || !_profileReady) return;
+    }
+    if (_startingMining || _isMining) return;
+
+    setState(() => _startingMining = true);
+
+    if (kIsWeb) {
+      _message('Chrome에서는 AdMob이 지원되지 않아 테스트 채굴을 바로 시작합니다.');
+      await _beginMiningSession();
+      if (mounted) setState(() => _startingMining = false);
+      return;
+    }
+
+    if (_rewardedAd == null) {
+      _message('광고를 준비하고 있습니다. 잠시 후 다시 눌러주세요.');
+      _loadRewardedAd();
+      if (mounted) setState(() => _startingMining = false);
+      return;
+    }
+
+    final ad = _rewardedAd;
+    _rewardedAd = null;
+
+    bool rewardEarned = false;
+
+    ad!.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) async {
+        ad.dispose();
+        if (!mounted || !_ownsSession) return;
+        _loadRewardedAd();
+
+        if (rewardEarned) {
+          await _applyMiningRateBonus(
+            source: 'ad_start',
+            amount: 0.05,
+            description: '광고 시청 후 채굴 시작',
+          );
+          await _beginMiningSession();
+        } else {
+          _message('광고를 끝까지 시청해야 채굴이 시작됩니다.');
+        }
+
+        if (mounted) setState(() => _startingMining = false);
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        ad.dispose();
+        if (!mounted || !_ownsSession) return;
+        _loadRewardedAd();
+        _message('광고를 표시하지 못했습니다. 다시 시도해주세요.');
+        if (mounted) setState(() => _startingMining = false);
+      },
+    );
+
+    ad.show(
+      onUserEarnedReward: (adWithoutView, rewardItem) {
+        rewardEarned = true;
+      },
+    );
+  }
+
+  void _loadRewardedAd() {
+    if (!mounted || !_ownsSession) return;
+    if (kIsWeb || _adLoading || _rewardedAd != null) return;
+
+    String? adUnitId;
+    if (!_adminAdEnabled) return;
+
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        final productionId = _adminAndroidRewardedId.isNotEmpty
+            ? _adminAndroidRewardedId
+            : _androidRewardedProductionId;
+        adUnitId = _adminUseTestAds || productionId.isEmpty
+            ? _androidRewardedTestId
+            : productionId;
+        break;
+      case TargetPlatform.iOS:
+        final productionId = _adminIosRewardedId.isNotEmpty
+            ? _adminIosRewardedId
+            : _iosRewardedProductionId;
+        adUnitId = _adminUseTestAds || productionId.isEmpty
+            ? _iosRewardedTestId
+            : productionId;
+        break;
+      default:
+        adUnitId = null;
+        break;
+    }
+
+    if (adUnitId == null) return;
+
+    _adLoading = true;
+
+    RewardedAd.load(
+      adUnitId: adUnitId,
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) {
+          if (!mounted || !_ownsSession) {
+            ad.dispose();
+            return;
+          }
+          _rewardedAd?.dispose();
+          _rewardedAd = ad;
+          _adLoading = false;
+          if (mounted) setState(() {});
+        },
+        onAdFailedToLoad: (error) {
+          _rewardedAd = null;
+          _adLoading = false;
+          debugPrint('AdMob rewarded load failed: ${error.code} ${error.message}');
+          if (mounted) setState(() {});
+        },
+      ),
+    );
+  }
+
+  Future<void> _beginMiningSession() async {
+    if (!mounted || !_ownsSession || !_profileReady) return;
+    final now = DateTime.now();
+    final endsAt = now.add(miningDuration);
+
+    setState(() {
+      _isMining = true;
+      _miningStartedAt = now;
+      _miningEndsAt = endsAt;
+      _displayOrbs = _storedOrbs;
+      _lastPersistAt = now;
+    });
+
+    final docRef = _userDoc;
+    if (docRef != null) {
+      try {
+        await docRef.set({
+          'miningActive': true,
+          'miningStartedAt': Timestamp.fromDate(now),
+          'miningEndsAt': Timestamp.fromDate(endsAt),
+          'orbs': _storedOrbs,
+          'points': _points,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } catch (e) {
+        _message('채굴 시작 정보 저장에 실패했습니다: $e');
+      }
+    }
+
+    _message('광고 시청이 확인되어 24시간 채굴을 시작했습니다.');
+  }
+
+  Future<void> _finishMiningSession({required bool persist}) async {
+    if (!mounted || !_ownsSession || !_profileReady) return;
+    if (!_isMining && _miningStartedAt == null) return;
+
+    final startedAt = _miningStartedAt;
+    final endsAt = _miningEndsAt;
+    final effectiveEnd =
+        endsAt != null && DateTime.now().isAfter(endsAt)
+            ? endsAt
+            : DateTime.now();
+
+    if (startedAt != null) {
+      final elapsed =
+          effectiveEnd.difference(startedAt).inMilliseconds / 1000.0;
+      _storedOrbs += math.max(0, elapsed) * orbsPerSecond;
+    }
+
+    _displayOrbs = _storedOrbs;
+    _isMining = false;
+    _miningStartedAt = null;
+    _miningEndsAt = null;
+
+    if (mounted) setState(() {});
+
+    if (persist) {
+      final docRef = _userDoc;
+      if (docRef != null) {
+        try {
+          await docRef.set({
+            'orbs': _storedOrbs,
+            'points': _points,
+            'miningActive': false,
+          'miningRate': 1.0,
+          'miningRateBonuses': <String, dynamic>{},
+            'miningStartedAt': FieldValue.delete(),
+            'miningEndsAt': FieldValue.delete(),
+            'lastMiningCompletedAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        } catch (_) {}
+      }
+    }
+
+    _message('24시간 채굴이 종료되었습니다. 광고 시청 후 다시 시작해주세요.');
+  }
+
+  Future<void> _persistMiningState() async {
+    if (!_profileReady || !_ownsSession) return;
+    final docRef = _userDoc;
+    if (docRef == null) return;
+
+    _recalculateDisplayOrbs();
+
+    try {
+      await docRef.set({
+        'orbs': _storedOrbs,
+        'points': _points,
+        'miningActive': _isMining,
+        if (_isMining && _miningStartedAt != null)
+          'miningStartedAt': Timestamp.fromDate(_miningStartedAt!),
+        if (_isMining && _miningEndsAt != null)
+          'miningEndsAt': Timestamp.fromDate(_miningEndsAt!),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
+
+  Future<void> _applyMiningRateBonus({
+    required String source,
+    required double amount,
+    required String description,
+  }) async {
+    final user = _user;
+    final docRef = _userDoc;
+    if (user == null || docRef == null || amount <= 0) return;
+
+    final eventRef = docRef.collection('miningRateHistory').doc();
+    try {
+      await FirebaseFirestore.instance.runTransaction((tx) async {
+        final snap = await tx.get(docRef);
+        final data = snap.data() ?? <String, dynamic>{};
+        final current = math.max(1.0, _readDouble(data['miningRate'], 1.0));
+        final next = double.parse((current + amount).toStringAsFixed(2));
+        tx.set(docRef, {
+          'miningRate': next,
+          'miningRateUpdatedAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+        tx.set(eventRef, {
+          'uid': user.uid,
+          'source': source,
+          'amount': amount,
+          'rateBefore': current,
+          'rateAfter': next,
+          'description': description,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        if (mounted && _ownsSession) _miningRate = next;
+      });
+      if (mounted) setState(() {});
+    } catch (e) {
+      _message('채굴률 보너스 저장에 실패했습니다: $e');
+    }
+  }
+
+  Future<void> _claimDailyReward() async {
+    if (!mounted || !_ownsSession) return;
+    if (_user == null) {
+      await _openLoginOnly();
+      return;
+    }
+    if (!_profileReady || !_ownsSession) return;
+    if (_dailyClaimed) {
+      _message('오늘의 채굴 보상은 이미 받았습니다.');
+      return;
+    }
+
+    setState(() {
+      _dailyClaimed = true;
+      _attendance += 1;
+      _points += 20;
+      _storedOrbs += 0.0200;
+      _displayOrbs += 0.0200;
+    });
+
+    final docRef = _userDoc;
+    if (docRef != null) {
+      try {
+        await docRef.set({
+          'points': _points,
+          'orbs': _storedOrbs,
+          'attendance': _attendance,
+          'lastDailyRewardAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } catch (e) {
+        _message('보상 저장에 실패했습니다: $e');
+        return;
+      }
+    }
+
+    _message('오늘의 채굴 보상 +20P / +0.0200 ORBS 지급');
+  }
+
+  Future<void> _claimAdReward() async {
+    if (_user == null) {
+      await _openLoginOnly();
+      return;
+    }
+    if (!_profileReady || !_ownsSession) return;
+    if (kIsWeb) {
+      _message('Chrome 웹에서는 AdMob 보상형 광고가 지원되지 않습니다.');
+      return;
+    }
+
+    if (_rewardedAd == null) {
+      _message('광고를 준비하고 있습니다. 잠시 후 다시 눌러주세요.');
+      _loadRewardedAd();
+      return;
+    }
+
+    final ad = _rewardedAd;
+    _rewardedAd = null;
+    bool rewardEarned = false;
+
+    ad!.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) async {
+        ad.dispose();
+        if (!mounted || !_ownsSession) return;
+        _loadRewardedAd();
+
+        if (rewardEarned) {
+          await _applyMiningRateBonus(
+            source: 'ad_reward',
+            amount: 0.05,
+            description: '보상형 광고 시청',
+          );
+          if (!mounted || !_ownsSession || !_profileReady) return;
+          setState(() {
+            _points += 10;
+            _storedOrbs += 0.0050;
+            _displayOrbs += 0.0050;
+          });
+
+          final docRef = _userDoc;
+          if (docRef != null) {
+            await docRef.set({
+              'points': _points,
+              'orbs': _storedOrbs,
+              'lastAdRewardAt': FieldValue.serverTimestamp(),
+              'updatedAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+          }
+
+          _message('광고 보상 +10P / +0.0050 ORBS 지급');
+        }
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        ad.dispose();
+        if (!mounted || !_ownsSession) return;
+        _loadRewardedAd();
+        _message('광고를 표시하지 못했습니다.');
+      },
+    );
+
+    ad.show(
+      onUserEarnedReward: (adWithoutView, rewardItem) {
+        rewardEarned = true;
+      },
+    );
+  }
+
+  String _generateDogTag() {
+    const units = <String>[
+      'ALPHA',
+      'BRAVO',
+      'CHARLIE',
+      'DELTA',
+      'ECHO',
+      'FALCON',
+      'ORBIT',
+      'VECTOR',
+    ];
+    final random = math.Random.secure();
+    final unit = units[random.nextInt(units.length)];
+    final number = 1 + random.nextInt(999);
+    return '$unit-${number.toString().padLeft(3, '0')}';
+  }
+
+  Future<void> _claimDailyDogTag() async {
+    if (!_profileReady || !_ownsSession) return;
+    final docRef = _userDoc;
+    if (docRef == null) {
+      _message('로그인 후 군번줄을 받을 수 있습니다.');
+      return;
+    }
+
+    final todayKey = _dayKey();
+    if (_dogTagClaimedToday && _lastDogTagDayKey == todayKey) {
+      _showDogTagDialog(_todayDogTag ?? '지급 완료');
+      return;
+    }
+
+    final newTag = _generateDogTag();
+    try {
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final snapshot = await transaction.get(docRef);
+        final data = snapshot.data() ?? <String, dynamic>{};
+        final savedDayKey = data['dailyDogTagDayKey']?.toString();
+        if (savedDayKey == todayKey) {
+          throw const _AlreadyClaimedException();
+        }
+
+        final currentPoints = _readInt(data['points'], _points);
+        final currentOrbs = _readDouble(data['orbs'], _storedOrbs);
+        final currentCount = _readInt(data['dogTagCount'], _dogTagCount);
+
+        transaction.set(docRef, {
+          'dailyDogTag': newTag,
+          'dailyDogTagDayKey': todayKey,
+          'dailyDogTagClaimedAt': FieldValue.serverTimestamp(),
+          'dogTagCount': currentCount + 1,
+          'points': currentPoints + 30,
+          'orbs': currentOrbs + 0.0300,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      });
+
+      if (!mounted || !_ownsSession) return;
+      setState(() {
+        _todayDogTag = newTag;
+        _lastDogTagDayKey = todayKey;
+        _dogTagClaimedToday = true;
+        _dogTagCount += 1;
+        _points += 30;
+        _storedOrbs += 0.0300;
+        _displayOrbs += 0.0300;
+      });
+      _showDogTagDialog(newTag);
+    } on _AlreadyClaimedException {
+      await _loadUserData();
+      _message('오늘의 군번줄은 이미 받았습니다.');
+    } catch (e) {
+      _message('군번줄 저장에 실패했습니다: $e');
+    }
+  }
+
+  Future<void> _showDogTagDialog(String tag) async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: const Color(0xFF101027),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.badge_rounded, color: lime),
+                SizedBox(width: 8),
+                Text('오늘의 군번줄', style: TextStyle(color: Colors.white)),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 22,
+                    horizontal: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: purple.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: violet),
+                  ),
+                  child: Text(
+                    tag,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: lime,
+                      fontSize: 25,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  '보상 +30P / +0.0300 ORBS\n텔레그램에서 같은 작전 조합을 찾아보세요.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, height: 1.5),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('확인', style: TextStyle(color: lime)),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _openWeeklyCodeDialog() async {
+    final operation = _weeklyOperation;
+    final controller = TextEditingController();
+
+    await showDialog<void>(
+      context: context,
+      builder:
+          (dialogContext) => AlertDialog(
+            backgroundColor: const Color(0xFF101027),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+            ),
+            title: Text(
+              operation.title,
+              style: const TextStyle(color: lime, fontWeight: FontWeight.w900),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '이번 주 힌트\n${operation.hint}',
+                  style: const TextStyle(color: Colors.white70, height: 1.5),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: controller,
+                  enabled: !_weeklyCodeCompleted,
+                  textCapitalization: TextCapitalization.characters,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: _weeklyCodeCompleted ? '이번 주 완료' : '작전 암호 입력',
+                    labelStyle: const TextStyle(color: Colors.white54),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: violet),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: lime, width: 2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  '성공 보상: +100P / +0.1000 ORBS',
+                  style: TextStyle(color: violet, fontWeight: FontWeight.w800),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text(
+                  '닫기',
+                  style: TextStyle(color: Colors.white60),
+                ),
+              ),
+              if (!_weeklyCodeCompleted)
+                FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: purple),
+                  onPressed: () async {
+                    final answer = controller.text.trim().toUpperCase();
+                    if (answer != operation.code) {
+                      _message('암호가 맞지 않습니다. 힌트를 다시 확인해주세요.');
+                      return;
+                    }
+                    Navigator.pop(dialogContext);
+                    await _completeWeeklyCode(operation);
+                  },
+                  child: const Text('작전 완료'),
+                ),
+            ],
+          ),
+    );
+    controller.dispose();
+  }
+
+  Future<void> _completeWeeklyCode(_WeeklyOperation operation) async {
+    if (!_profileReady || !_ownsSession) return;
+    final docRef = _userDoc;
+    if (docRef == null) {
+      _message('로그인 후 주간 작전에 참여할 수 있습니다.');
+      return;
+    }
+
+    final eventId = _weekKey();
+    try {
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final snapshot = await transaction.get(docRef);
+        final data = snapshot.data() ?? <String, dynamic>{};
+        if (data['weeklyCodeEventId']?.toString() == eventId) {
+          throw const _AlreadyClaimedException();
+        }
+
+        final currentPoints = _readInt(data['points'], _points);
+        final currentOrbs = _readDouble(data['orbs'], _storedOrbs);
+        final wins = _readInt(
+          data['weeklyOperationWins'],
+          _weeklyOperationWins,
+        );
+
+        transaction.set(docRef, {
+          'weeklyCodeEventId': eventId,
+          'weeklyCodeName': operation.title,
+          'weeklyCodeCompletedAt': FieldValue.serverTimestamp(),
+          'weeklyOperationWins': wins + 1,
+          'points': currentPoints + 100,
+          'orbs': currentOrbs + 0.1000,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      });
+
+      if (!mounted || !_ownsSession) return;
+      setState(() {
+        _completedWeeklyEventId = eventId;
+        _weeklyCodeCompleted = true;
+        _weeklyOperationWins += 1;
+        _points += 100;
+        _storedOrbs += 0.1000;
+        _displayOrbs += 0.1000;
+      });
+      _message('주간 작전 성공! +100P / +0.1000 ORBS 지급');
+    } on _AlreadyClaimedException {
+      await _loadUserData();
+      _message('이번 주 작전 보상은 이미 받았습니다.');
+    } catch (e) {
+      _message('주간 작전 저장에 실패했습니다: $e');
+    }
+  }
+
+  Future<void> _logout() async {
+    try {
+      // 채굴 상태 저장이 오래 걸리더라도
+      // 최대 3초 후에는 로그아웃을 계속 진행합니다.
+      await _persistMiningState().timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {},
+      );
+    } catch (_) {
+      // 저장 오류가 발생해도 로그아웃은 계속 진행합니다.
+    }
+
+    await AuthSessionService.signOut();
+  }
+
+  void _message(String text) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(text),
+        backgroundColor: purple,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final email = _user?.email ?? _tr('로그인 필요', 'Sign in');
+
+    return Scaffold(
+      backgroundColor: bg,
+      drawer: _drawer(email),
+      bottomNavigationBar: _bottomNavigationBar(),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: IgnorePointer(
+              child: RepaintBoundary(child: _spaceBackground()),
+            ),
+          ),
+          SafeArea(
+            child:
+                _loading
+                    ? const Center(
+                      child: CircularProgressIndicator(color: lime),
+                    )
+                    : CustomScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      slivers: [
+                        SliverToBoxAdapter(child: _topHeader()),
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(14, 8, 14, 20),
+                          sliver: SliverList(
+                            delegate: SliverChildListDelegate([
+                              _profileBalanceRow(email),
+                              const SizedBox(height: 18),
+                              _miningHero(),
+                              const SizedBox(height: 14),
+                              _startMiningButton(),
+                              const SizedBox(height: 12),
+                              _rewardRow(),
+                              const SizedBox(height: 12),
+                              _featureStrip(),
+                              const SizedBox(height: 12),
+                              _cryptoMarketPanel(),
+                              const SizedBox(height: 12),
+                              _newsPanel(),
+                              const SizedBox(height: 12),
+                              const OrqubeAdSenseAd(placement: 'mining'),
+                              const SizedBox(height: 12),
+                              _topMinersPanel(),
+                              const SizedBox(height: 22),
+                              const Center(
+                                child: Text(
+                                  '© 2026 ORQUBE\n회사소개 · 이용약관 · 개인정보처리방침',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white30,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ]),
+                          ),
+                        ),
+                      ],
+                    ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _spaceBackground() {
+    return AnimatedBuilder(
+      animation: _starsController,
+      builder: (context, child) {
+        return CustomPaint(
+          painter: _SpacePainter(progress: _starsController.value),
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(0.0, -0.18),
+                radius: 1.18,
+                colors: [
+                  Color(0xFF24104F),
+                  Color(0xFF090A18),
+                  Color(0xFF02030A),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _topHeader() {
+    return Builder(
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+          child: Row(
+            children: [
+              IconButton(
+                tooltip: '메뉴',
+                onPressed: () => Scaffold.of(context).openDrawer(),
+                icon: const Icon(Icons.menu_rounded),
+                color: Colors.white,
+              ),
+              InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _animatedRoundLogo(size: 42),
+                      const SizedBox(width: 10),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'ORQUBE',
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                          Text(
+                            'AIRSOFT & WEB3 ECOSYSTEM',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: lime,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Container(
+                height: 36,
+                padding: const EdgeInsets.symmetric(horizontal: 9),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.055),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _languageCode,
+                    dropdownColor: const Color(0xFF111329),
+                    icon: const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: Colors.white70,
+                      size: 17,
+                    ),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    items:
+                        _languageLabels.entries.map((entry) {
+                          return DropdownMenuItem<String>(
+                            value: entry.key,
+                            child: Text(entry.value),
+                          );
+                        }).toList(),
+                    onChanged: _changeLanguage,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: _tr(
+                  '알림',
+                  'Notifications',
+                  ja: '通知',
+                  zh: '通知',
+                  fr: 'Notifications',
+                  pt: 'Notificações',
+                ),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const NotificationCenterPage()),
+                ),
+                icon: const Icon(Icons.notifications_none_rounded),
+                color: Colors.white,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _profileBalanceRow(String email) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final narrow = constraints.maxWidth < 360;
+
+        if (narrow) {
+          return Column(
+            children: [
+              _profileCard(email),
+              const SizedBox(height: 10),
+              _balanceCard(),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _profileCard(email)),
+            const SizedBox(width: 10),
+            Expanded(child: _balanceCard()),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _profileCard(String email) {
+    return _glassCard(
+      padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
+      child: SizedBox(
+        height: 160,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _tr(
+                '환영합니다',
+                'Welcome',
+                ja: 'ようこそ',
+                zh: '欢迎',
+                fr: 'Bienvenue',
+                pt: 'Bem-vindo',
+              ),
+              style: TextStyle(
+                color: violet,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _user == null ? _tr('로그인 필요', 'Sign in') : '$_nickname님',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 21,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: purple,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    _level,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 7),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: purple.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: violet.withOpacity(0.35)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.diamond_rounded, color: violet, size: 13),
+                  const SizedBox(width: 5),
+                  Text(
+                    _rank,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Spacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _tinyMetric(
+                  Icons.calendar_month_rounded,
+                  '출석',
+                  '$_attendance일',
+                ),
+                _tinyMetric(Icons.groups_rounded, '추천인', '$_referral명'),
+                _tinyMetric(Icons.hexagon_outlined, 'NFT', '$_nftCount개'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tinyMetric(IconData icon, String label, String value) {
+    return Column(
+      children: [
+        Icon(icon, color: violet, size: 20),
+        const SizedBox(height: 3),
+        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 12)),
+      ],
+    );
+  }
+
+  Widget _balanceCard() {
+    return _glassCard(
+      padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
+      child: SizedBox(
+        height: 160,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Center(
+              child: Text(
+                'ORBS BALANCE',
+                style: TextStyle(
+                  color: lime,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.diamond_rounded, color: violet, size: 33),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _displayOrbs.toStringAsFixed(4),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 27,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+                const Text(
+                  ' ORBS',
+                  style: TextStyle(
+                    color: lime,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(color: Colors.white12, height: 20),
+            Row(
+              children: [
+                const Text(
+                  'POINTS',
+                  style: TextStyle(color: violet, fontSize: 12),
+                ),
+                const Spacer(),
+                Text(
+                  '${_points}P',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.black26,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: Text(
+                _walletAddress,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white60, fontSize: 11.5),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _miningHero() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final circleSize = math
+            .min(constraints.maxWidth * 0.72, 330.0)
+            .clamp(250.0, 330.0);
+
+        return Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (constraints.maxWidth >= 390)
+                  SizedBox(
+                    width: 86,
+                    child: _sideStatusCard(
+                      icon: Icons.flash_on_rounded,
+                      title: 'MINING\nPOWER',
+                      value: '×${_miningRate.toStringAsFixed(2)}',
+                      color: lime,
+                    ),
+                  ),
+                Expanded(
+                  child: Center(
+                    child: SizedBox(
+                      width: circleSize,
+                      height: circleSize,
+                      child: AnimatedBuilder(
+                        animation: Listenable.merge([
+                          _ringController,
+                          _pulseController,
+                        ]),
+                        builder: (context, child) {
+                          return CustomPaint(
+                            painter: _MiningRingPainter(
+                              progress: _ringController.value,
+                              pulse: _pulseController.value,
+                              active: _isMining,
+                            ),
+                            child: child,
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(33),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: const Color(0xE6080912),
+                              border: Border.all(
+                                color: violet.withOpacity(0.5),
+                                width: 1.2,
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _animatedRoundLogo(size: 64),
+                                const SizedBox(height: 13),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    _displayOrbs.toStringAsFixed(4),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 34,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                                const Text(
+                                  'ORBS',
+                                  style: TextStyle(
+                                    color: lime,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  _durationText(_elapsed),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color:
+                                            _isMining ? lime : Colors.white38,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      _isMining
+                                          ? 'MINING ACTIVE'
+                                          : 'MINING STOPPED',
+                                      style: TextStyle(
+                                        color:
+                                            _isMining ? lime : Colors.white54,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                if (constraints.maxWidth >= 390)
+                  SizedBox(
+                    width: 86,
+                    child: _sideStatusCard(
+                      icon: Icons.schedule_rounded,
+                      title: 'STATUS',
+                      value: _isMining ? 'ACTIVE' : 'STOP',
+                      color: _isMining ? green : Colors.white54,
+                    ),
+                  ),
+              ],
+            ),
+            if (constraints.maxWidth < 390) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _miniStatusCard(
+                      Icons.flash_on_rounded,
+                      'MINING POWER',
+                      '100%',
+                      lime,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _miniStatusCard(
+                      Icons.schedule_rounded,
+                      '24H MINING',
+                      _isMining ? _remainingText(_remaining) : 'STOPPED',
+                      _isMining ? lime : Colors.white54,
+                    ),
+                  ),
+                ],
+              ),
+            ] else
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  _isMining
+                      ? '남은 시간  ${_remainingText(_remaining)}'
+                      : '채굴이 중지되어 있습니다.',
+                  style: TextStyle(
+                    color: _isMining ? lime : Colors.white54,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _sideStatusCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+  }) {
+    return _glassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 13),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 25),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white54, fontSize: 13),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _miniStatusCard(
+    IconData icon,
+    String title,
+    String value,
+    Color color,
+  ) {
+    return _glassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(color: Colors.white54, fontSize: 13),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _startMiningButton() {
+    final title =
+        _isMining
+            ? '24시간 채굴 진행 중'
+            : _startingMining
+            ? '광고 준비 중...'
+            : '채굴 시작하기';
+
+    final subtitle =
+        _isMining
+            ? '남은 시간 ${_remainingText(_remaining)}'
+            : kIsWeb
+            ? 'Chrome 테스트: 광고 없이 시작'
+            : '채굴을 시작하려면 광고를 끝까지 시청해주세요';
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(19),
+      onTap: _isMining ? null : _startMiningRequest,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        width: double.infinity,
+        constraints: const BoxConstraints(minHeight: 86),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        decoration: BoxDecoration(
+          color: _isMining ? lime.withOpacity(0.05) : panel,
+          borderRadius: BorderRadius.circular(19),
+          border: Border.all(color: _isMining ? green : lime, width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: (_isMining ? green : lime).withOpacity(0.18),
+              blurRadius: 20,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (_startingMining)
+              const SizedBox(
+                width: 31,
+                height: 31,
+                child: CircularProgressIndicator(strokeWidth: 2.5, color: lime),
+              )
+            else
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _isMining ? green : lime, width: 2),
+                ),
+                child: Icon(
+                  _isMining ? Icons.flash_on_rounded : Icons.play_arrow_rounded,
+                  color: _isMining ? green : lime,
+                  size: 29,
+                ),
+              ),
+            const SizedBox(width: 13),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: _isMining ? green : lime,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _rewardRow() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cards = [
+          _actionCard(
+            icon: Icons.card_giftcard_rounded,
+            title:
+                _dailyClaimed
+                    ? _tr(
+                      '오늘 보상 완료',
+                      'DAILY REWARD COMPLETE',
+                      ja: '本日の報酬完了',
+                      zh: '今日奖励已完成',
+                      fr: 'RÉCOMPENSE DU JOUR TERMINÉE',
+                      pt: 'RECOMPENSA DIÁRIA CONCLUÍDA',
+                    )
+                    : _tr(
+                      '오늘의 채굴 보상',
+                      'DAILY MINING REWARD',
+                      ja: '本日の採掘報酬',
+                      zh: '今日挖矿奖励',
+                      fr: 'RÉCOMPENSE MINIÈRE',
+                      pt: 'RECOMPENSA DE MINERAÇÃO',
+                    ),
+            subtitle: '+20P / +0.0200 ORBS',
+            footer: '1일 1회',
+            color: violet,
+            onTap: _claimDailyReward,
+          ),
+          _actionCard(
+            icon: Icons.play_circle_outline_rounded,
+            title: '광고 보고 보상받기',
+            subtitle: '+10P / +0.0050 ORBS',
+            footer: kIsWeb ? '앱 전용' : '광고 시청',
+            color: lime,
+            onTap: _claimAdReward,
+          ),
+          _actionCard(
+            icon: Icons.inventory_2_rounded,
+            title: _tr('아이템 이벤트', 'Item Event'),
+            subtitle: _tr('보관함 · 3인 수집소', 'Vault · 3-person collection'),
+            footer: '랜덤 1~3개',
+            color: const Color(0xFF738BFF),
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ItemEventPage()),
+              );
+              await _loadUserData();
+            },
+          ),
+        ];
+
+        if (constraints.maxWidth < 480) {
+          return Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(child: cards[0]),
+                  const SizedBox(width: 9),
+                  Expanded(child: cards[1]),
+                ],
+              ),
+              const SizedBox(height: 9),
+              cards[2],
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: cards[0]),
+            const SizedBox(width: 9),
+            Expanded(child: cards[1]),
+            const SizedBox(width: 9),
+            Expanded(child: cards[2]),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _actionCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String footer,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(17),
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(minHeight: 112),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.10),
+          borderRadius: BorderRadius.circular(17),
+          border: Border.all(color: color.withOpacity(0.9), width: 1.1),
+          boxShadow: [
+            BoxShadow(color: color.withOpacity(0.10), blurRadius: 15),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 29),
+            const SizedBox(height: 7),
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: color,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 7),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black26,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: color.withOpacity(0.35)),
+              ),
+              child: Text(
+                footer,
+                style: const TextStyle(color: Colors.white60, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _eventPanel() {
+    final operation = _weeklyOperation;
+    return _glassCard(
+      padding: const EdgeInsets.all(13),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.military_tech_rounded, color: lime, size: 21),
+              SizedBox(width: 7),
+              Text(
+                'ORQUBE OPERATIONS',
+                style: TextStyle(
+                  color: lime,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 11),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final dailyCard = _eventCard(
+                icon: Icons.badge_rounded,
+                title: '하루 1회 군번줄',
+                value:
+                    _dogTagClaimedToday
+                        ? (_todayDogTag ?? '지급 완료')
+                        : '오늘의 태그 받기',
+                detail:
+                    _dogTagClaimedToday
+                        ? '누적 $_dogTagCount개 · 내일 다시 지급'
+                        : '+30P / +0.0300 ORBS',
+                color: violet,
+                completed: _dogTagClaimedToday,
+                onTap: _claimDailyDogTag,
+              );
+              final weeklyCard = _eventCard(
+                icon: Icons.password_rounded,
+                title: '주간 암호 이벤트',
+                value: _weeklyCodeCompleted ? '이번 주 작전 완료' : operation.title,
+                detail:
+                    _weeklyCodeCompleted
+                        ? '누적 성공 $_weeklyOperationWins회'
+                        : '+100P / +0.1000 ORBS',
+                color: lime,
+                completed: _weeklyCodeCompleted,
+                onTap: _openWeeklyCodeDialog,
+              );
+
+              if (constraints.maxWidth < 430) {
+                return Column(
+                  children: [dailyCard, const SizedBox(height: 9), weeklyCard],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: dailyCard),
+                  const SizedBox(width: 9),
+                  Expanded(child: weeklyCard),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _eventCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required String detail,
+    required Color color,
+    required bool completed,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(minHeight: 116),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(completed ? 0.07 : 0.12),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.75)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withOpacity(0.16),
+                border: Border.all(color: color),
+              ),
+              child: Icon(
+                completed ? Icons.check_rounded : icon,
+                color: color,
+                size: 27,
+              ),
+            ),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(color: Colors.white60, fontSize: 11.5),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    detail,
+                    style: const TextStyle(color: Colors.white54, fontSize: 11.5),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Colors.white30),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _featureStrip() {
+    final items = [
+      _FeatureData(Icons.account_balance_wallet_rounded, 'WALLET', OrqubeI18n.key(_languageCode, 'wallet')),
+      _FeatureData(Icons.hexagon_outlined, 'NFT', OrqubeI18n.key(_languageCode, 'nftVault')),
+      _FeatureData(
+        Icons.sports_martial_arts_rounded,
+        'AIRSOFT',
+        OrqubeI18n.key(_languageCode, 'airsoftHub'),
+      ),
+      _FeatureData(Icons.event_available_rounded, 'ATTENDANCE', OrqubeI18n.key(_languageCode, 'attendance')),
+      _FeatureData(Icons.group_add_outlined, 'REFERRAL', OrqubeI18n.key(_languageCode, 'referral')),
+      _FeatureData(Icons.person_search_rounded, 'FRIENDS', OrqubeI18n.key(_languageCode, 'friends')),
+      _FeatureData(Icons.groups_rounded, 'COMMUNITY', OrqubeI18n.key(_languageCode, 'community')),
+      _FeatureData(
+        Icons.android_rounded,
+        'APK',
+        _tr(
+          '안드로이드 앱 APK 설치',
+          'Android App APK',
+          ja: 'Androidアプリ APK インストール',
+          zh: 'Android 应用 APK 安装',
+          fr: 'Installer l\'APK Android',
+          pt: 'Instalar APK Android',
+        ),
+      ),
+      _FeatureData(Icons.savings_rounded, 'STAKING', OrqubeI18n.key(_languageCode, 'staking')),
+    ];
+
+    return _glassCard(
+      padding: const EdgeInsets.all(10),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // 모바일에서는 반드시 3열로 고정하여 항목이 화면 밖으로
+          // 밀려나지 않도록 합니다. 마지막 줄은 2개 항목만 표시됩니다.
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: items.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 6,
+              mainAxisSpacing: 6,
+              // 넓은 웹 화면에서 카드가 가로 폭에 비례해 지나치게
+              // 높아지지 않도록 높이를 고정합니다. 모바일 구성은 유지합니다.
+              mainAxisExtent: constraints.maxWidth >= 1000
+                  ? 150
+                  : constraints.maxWidth >= 700
+                      ? 126
+                      : 104,
+            ),
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () {
+                  if (item.title == 'WALLET') {
+                    _openWalletPage();
+                    return;
+                  }
+                  if (item.title == 'NFT') {
+                    _openNftDashboardPage();
+                    return;
+                  }
+                  if (item.title == 'AIRSOFT') {
+                    _openAirsoftHub();
+                    return;
+                  }
+                  if (item.title == 'ATTENDANCE') {
+                    _openAttendancePage();
+                    return;
+                  }
+                  if (item.title == 'COMMUNITY') {
+                    _openCommunityPage();
+                    return;
+                  }
+                  if (item.title == 'APK') {
+                    _openAndroidApkDownload();
+                    return;
+                  }
+                  if (item.title == 'STAKING') {
+                    _message(
+                      OrqubeI18n.key(_languageCode, 'stakingComingSoon'),
+                    );
+                    return;
+                  }
+                  if (item.title == 'REFERRAL') {
+                    _openProtectedPage(const ReferralPage());
+                    return;
+                  }
+                  if (item.title == 'FRIENDS') {
+                    _openProtectedPage(const FriendFinderPage());
+                    return;
+                  }
+                  _message('${item.title} 기능은 다음 단계에서 연결합니다.');
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.018),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(item.icon, color: Colors.white70, size: 25),
+                      const SizedBox(height: 6),
+                      Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        item.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 11.5,
+                          height: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _cryptoMarketPanel() {
+    final hasData = _cryptoQuotes.isNotEmpty;
+
+    return _glassCard(
+      padding: const EdgeInsets.all(13),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.public_rounded,
+                color: lime,
+                size: 19,
+              ),
+              const SizedBox(width: 7),
+              const Expanded(
+                child: Text(
+                  'GLOBAL CRYPTO MARKET',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: lime,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.35,
+                  ),
+                ),
+              ),
+              AnimatedBuilder(
+                animation: _pulseController,
+                builder: (context, child) {
+                  final opacity = 0.55 + (_pulseController.value * 0.45);
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: green.withOpacity(0.08 + opacity * 0.05),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: green.withOpacity(opacity)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: green.withOpacity(opacity),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: green.withOpacity(opacity * 0.55),
+                                blurRadius: 7,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        const Text(
+                          'LIVE',
+                          style: TextStyle(
+                            color: green,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.7,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 3),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                tooltip: _tr('시세 새로고침', 'Refresh market'),
+                onPressed:
+                    _cryptoLoading
+                        ? null
+                        : () => _loadCryptoMarket(showFeedback: true),
+                icon:
+                    _cryptoLoading
+                        ? const SizedBox(
+                          width: 17,
+                          height: 17,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: violet,
+                          ),
+                        )
+                        : const Icon(
+                          Icons.refresh_rounded,
+                          color: Colors.white54,
+                          size: 20,
+                        ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _tr(
+                    '주요 가상자산 · USD 기준 · 60초 자동 갱신',
+                    'Major assets · USD · Auto refresh every 60s',
+                    ja: '主要暗号資産 · USD · 60秒ごとに自動更新',
+                    zh: '主要加密资产 · USD · 每60秒自动刷新',
+                    fr: 'Principaux actifs · USD · Actualisation toutes les 60 s',
+                    pt: 'Principais ativos · USD · Atualização a cada 60 s',
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white38, fontSize: 10.5),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _cryptoUpdatedLabel(),
+                style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 10.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (!hasData && _cryptoLoading)
+            const SizedBox(
+              height: 118,
+              child: Center(
+                child: CircularProgressIndicator(color: lime, strokeWidth: 2),
+              ),
+            )
+          else if (!hasData && _cryptoError != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.025),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.cloud_off_rounded, color: Colors.white38),
+                  const SizedBox(height: 7),
+                  Text(
+                    _tr(
+                      '실시간 시세 연결을 확인해주세요.',
+                      'Live market connection is unavailable.',
+                      ja: 'リアルタイム市場への接続を確認してください。',
+                      zh: '请检查实时行情连接。',
+                      fr: 'Vérifiez la connexion au marché en direct.',
+                      pt: 'Verifique a conexão com o mercado ao vivo.',
+                    ),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: () => _loadCryptoMarket(showFeedback: true),
+                    icon: const Icon(Icons.refresh_rounded, size: 17),
+                    label: Text(_tr('다시 시도', 'Retry')),
+                    style: TextButton.styleFrom(foregroundColor: violet),
+                  ),
+                ],
+              ),
+            )
+          else ...[
+            _cryptoMovingTicker(),
+            const SizedBox(height: 10),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.maxWidth >= 760 ? 3 : 2;
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _cryptoQuotes.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: columns,
+                    crossAxisSpacing: 7,
+                    mainAxisSpacing: 7,
+                    mainAxisExtent: 91,
+                  ),
+                  itemBuilder: (context, index) {
+                    return _cryptoQuoteCard(_cryptoQuotes[index]);
+                  },
+                );
+              },
+            ),
+            if (_cryptoError != null) ...[
+              const SizedBox(height: 7),
+              Text(
+                _tr(
+                  '마지막으로 받은 시세를 표시 중입니다.',
+                  'Showing the last successfully received prices.',
+                  ja: '最後に取得した価格を表示しています。',
+                  zh: '正在显示上次成功获取的价格。',
+                  fr: 'Affichage des derniers cours reçus.',
+                  pt: 'Exibindo as últimas cotações recebidas.',
+                ),
+                style: const TextStyle(color: Colors.white30, fontSize: 10),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _cryptoMovingTicker() {
+    if (_cryptoQuotes.isEmpty) return const SizedBox.shrink();
+
+    const itemWidth = 154.0;
+    final travel = itemWidth * _cryptoQuotes.length;
+
+    Widget group() {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children:
+            _cryptoQuotes.map((quote) {
+              final positive = quote.change24h >= 0;
+              final changeColor =
+                  positive ? green : const Color(0xFFFF5C7A);
+              return SizedBox(
+                width: itemWidth,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Row(
+                    children: [
+                      Text(
+                        quote.symbol,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          _formatUsd(quote.price),
+                          maxLines: 1,
+                          overflow: TextOverflow.fade,
+                          softWrap: false,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${positive ? '+' : ''}${quote.change24h.toStringAsFixed(2)}%',
+                        style: TextStyle(
+                          color: changeColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+      );
+    }
+
+    return Container(
+      height: 35,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.20),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: AnimatedBuilder(
+        animation: _starsController,
+        builder: (context, child) {
+          final dx = -(_starsController.value * travel);
+          return OverflowBox(
+            alignment: Alignment.centerLeft,
+            minWidth: 0,
+            maxWidth: double.infinity,
+            child: Transform.translate(
+              offset: Offset(dx, 0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [group(), group(), group()],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _cryptoQuoteCard(_CryptoQuote quote) {
+    final positive = quote.change24h >= 0;
+    final changeColor = positive ? green : const Color(0xFFFF5C7A);
+    final initial = quote.symbol.isEmpty ? '?' : quote.symbol.substring(0, 1);
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            changeColor.withOpacity(0.105),
+            Colors.white.withOpacity(0.018),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: changeColor.withOpacity(0.32)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: changeColor.withOpacity(0.13),
+                  border: Border.all(color: changeColor.withOpacity(0.48)),
+                ),
+                child: Text(
+                  initial,
+                  style: TextStyle(
+                    color: changeColor,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      quote.symbol,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      quote.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 8.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                positive
+                    ? Icons.trending_up_rounded
+                    : Icons.trending_down_rounded,
+                color: changeColor,
+                size: 17,
+              ),
+            ],
+          ),
+          const Spacer(),
+          Text(
+            _formatUsd(quote.price),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '${positive ? '+' : ''}${quote.change24h.toStringAsFixed(2)}%  / 24H',
+            style: TextStyle(
+              color: changeColor,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _newsPanel() {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: _openNewsPage,
+      child: _glassCard(
+        padding: const EdgeInsets.all(13),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text('ORQUBE NEWS', style: TextStyle(color: violet, fontSize: 15, fontWeight: FontWeight.w900)),
+                const Spacer(),
+                Text(_tr('더보기 >', 'View more >'), style: const TextStyle(color: Colors.white54, fontSize: 12)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance
+                  .collection('orqube_news')
+                  .where('isActive', isEqualTo: true)
+                  .limit(50)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                final docs = snapshot.data?.docs.toList() ?? <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+                docs.sort((a, b) {
+                  final at = a.data()['publishedAt'];
+                  final bt = b.data()['publishedAt'];
+                  final ad = at is Timestamp ? at.toDate() : DateTime.fromMillisecondsSinceEpoch(0);
+                  final bd = bt is Timestamp ? bt.toDate() : DateTime.fromMillisecondsSinceEpoch(0);
+                  return bd.compareTo(ad);
+                });
+                Map<String, dynamic>? latest(String type) {
+                  for (final doc in docs) {
+                    final data = doc.data();
+                    final rawType = '${data['type'] ?? ''}'.toLowerCase();
+                    final category = '${data['category'] ?? ''}'.toLowerCase();
+                    if (rawType == type ||
+                        (type == 'notice' && (category.contains('공지') || category == 'notice')) ||
+                        (type == 'event' && (category.contains('이벤트') || category == 'event')) ||
+                        (type == 'airsoft' && category.contains('airsoft'))) {
+                      return data;
+                    }
+                  }
+                  return null;
+                }
+                Widget tile(String type, String tag, String fallback) {
+                  final data = latest(type);
+                  return _NewsTile(
+                    tag: tag,
+                    title: data == null ? fallback : '${data['title'] ?? fallback}',
+                    date: data == null ? 'NEW' : _newsDateLabel(data['publishedAt']),
+                  );
+                }
+                return Column(
+                  children: [
+                    tile('notice', _tr('공지', 'NOTICE'), _tr('등록된 공지사항이 없습니다', 'No notice posted yet')),
+                    tile('event', _tr('이벤트', 'EVENT'), _tr('등록된 이벤트가 없습니다', 'No event posted yet')),
+                    tile('airsoft', 'AIRSOFT', _tr('등록된 AIRSOFT 소식이 없습니다', 'No AIRSOFT update yet')),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  String _newsDateLabel(dynamic value) {
+    if (value is! Timestamp) return 'NEW';
+    final d = value.toDate().toLocal();
+    return '${d.month.toString().padLeft(2, '0')}.${d.day.toString().padLeft(2, '0')}';
+  }
+
+  Widget _topMinersPanel() {
+    return _glassCard(
+      padding: const EdgeInsets.all(13),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'TOP MINERS',
+                style: TextStyle(
+                  color: lime,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Spacer(),
+              Text(
+                '더보기 >',
+                style: TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+            ],
+          ),
+          SizedBox(height: 10),
+          _MinerRow(rank: 1, name: 'OrqubeMaster', amount: '9.2456 ORBS'),
+          _MinerRow(rank: 2, name: 'AirsoftKing', amount: '8.2158 ORBS'),
+          _MinerRow(rank: 3, name: 'TacticalPro', amount: '6.9872 ORBS'),
+          _MinerRow(
+            rank: 4,
+            name: 'ORQUBE Demo',
+            amount: '3.2478 ORBS',
+            active: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openLoginOnly() async {
+    if (_user != null) return;
+    final navigator = Navigator.of(context);
+    await navigator.push(MaterialPageRoute(builder: (_) => const LoginPage()));
+  }
+
+  Future<void> _openProtectedPage(Widget page, {bool closeDrawer = false}) async {
+    final navigator = Navigator.of(context);
+    if (closeDrawer) navigator.pop();
+    if (FirebaseAuth.instance.currentUser == null) {
+      await navigator.push(MaterialPageRoute(builder: (_) => const LoginPage()));
+    }
+    if (!navigator.mounted || FirebaseAuth.instance.currentUser == null) return;
+    await navigator.push(MaterialPageRoute(builder: (_) => page));
+  }
+
+  Widget _drawer(String email) {
+    return Drawer(
+      backgroundColor: const Color(0xFF080816),
+      child: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            _roundLogo(size: 82),
+            const SizedBox(height: 12),
+            const Text(
+              'ORQUBE',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 25,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(email, style: const TextStyle(color: Colors.white54)),
+            const SizedBox(height: 22),
+            _DrawerItem(
+              Icons.shield_rounded,
+              _tr('안심귀가', 'Safe Return'),
+              onTap: () => _openProtectedPage(
+                const AirsoftMapPage(initialMode: OrqubeMapMode.safeHome),
+                closeDrawer: true,
+              ),
+            ),
+            _DrawerItem(
+              Icons.terrain_rounded,
+              _tr('안전산행', 'Safe Hiking'),
+              onTap: () => _openProtectedPage(
+                const AirsoftMapPage(initialMode: OrqubeMapMode.safeHiking),
+                closeDrawer: true,
+              ),
+            ),
+            _DrawerItem(
+              Icons.sports_mma_rounded,
+              _tr('에어소프트 허브', 'Airsoft Hub'),
+              onTap: () => _openProtectedPage(
+                const AirsoftHubPage(),
+                closeDrawer: true,
+              ),
+            ),
+            _DrawerItem(
+              Icons.forum_rounded,
+              _tr('일반 게시판', 'General Board'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const CommunityHubPage(),
+                  ),
+                );
+              },
+            ),
+            _DrawerItem(
+              Icons.event_rounded,
+              _tr('아이템 이벤트', 'Item Event'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const ItemEventPage(),
+                  ),
+                );
+              },
+            ),
+            const Spacer(),
+            ListTile(
+              leading: const Icon(Icons.logout_rounded, color: Colors.white60),
+              title: Text(
+                _user == null ? _tr('로그인', 'Sign in') : _tr('로그아웃', 'Logout'),
+                style: TextStyle(color: Colors.white70),
+              ),
+              onTap: () async {
+                Navigator.of(context).pop();
+
+                if (_user == null) {
+                  await _openLoginOnly();
+                  return;
+                }
+                await _logout();
+
+                if (!mounted) return;
+
+                ScaffoldMessenger.of(context).clearSnackBars();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openAndroidApkDownload() async {
+    final uri = Uri.parse('https://www.orqubic.com/apk/orqube-latest.apk');
+    final opened = await launchUrl(uri, mode: LaunchMode.platformDefault);
+    if (!opened && mounted) {
+      _message(
+        _tr(
+          'APK 다운로드 링크를 열지 못했습니다.',
+          'Could not open the APK download link.',
+          ja: 'APKダウンロードリンクを開けませんでした。',
+          zh: '无法打开 APK 下载链接。',
+          fr: 'Impossible d’ouvrir le lien de téléchargement APK.',
+          pt: 'Não foi possível abrir o link de download do APK.',
+        ),
+      );
+    }
+  }
+
+  Future<void> _openAirsoftHub() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AirsoftHubPage()),
+    );
+  }
+
+  Future<void> _openProfilePage() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => ProfilePage()));
+    if (!mounted) return;
+    await _loadUserData();
+  }
+
+  Future<void> _openAttendancePage() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => AttendancePage()));
+    if (!mounted) return;
+    await _loadUserData();
+  }
+
+  Future<void> _openNewsPage() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => NewsPage()));
+  }
+
+  Future<void> _openCommunityPage() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CommunityHubPage()),
+    );
+    if (!mounted) return;
+    setState(() => _selectedIndex = 1);
+  }
+
+  Future<void> _openRankingPage() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const RankingPage()),
+    );
+  }
+
+  Future<void> _openWalletPage() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WalletPage(languageCode: _languageCode),
+      ),
+    );
+
+    if (!mounted) return;
+    setState(() => _selectedIndex = 1);
+  }
+
+  Future<void> _openNftDashboardPage() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const NftDashboardPage()));
+
+    if (!mounted) return;
+    setState(() => _selectedIndex = 1);
+  }
+
+  Widget _bottomNavigationBar() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF080816),
+        border: Border(top: BorderSide(color: Colors.white12)),
+      ),
+      child: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (value) {
+          if (value == 2) {
+            _openWalletPage();
+            return;
+          }
+          if (value == 3) {
+            _openCommunityPage();
+            return;
+          }
+          if (value == 4) {
+            _openProfilePage();
+            return;
+          }
+          setState(() => _selectedIndex = value);
+        },
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: lime,
+        unselectedItemColor: Colors.white38,
+        selectedFontSize: 10,
+        unselectedFontSize: 9,
+        items: [
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.home_rounded),
+            label: _tr(
+              '홈',
+              'HOME',
+              ja: 'ホーム',
+              zh: '首页',
+              fr: 'ACCUEIL',
+              pt: 'INÍCIO',
+            ),
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.flash_on_rounded),
+            label: _tr(
+              '채굴',
+              'MINING',
+              ja: '採掘',
+              zh: '挖矿',
+              fr: 'MINAGE',
+              pt: 'MINERAÇÃO',
+            ),
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.wallet_rounded),
+            label: _tr(
+              '지갑',
+              'WALLET',
+              ja: 'ウォレット',
+              zh: '钱包',
+              fr: 'PORTEFEUILLE',
+              pt: 'CARTEIRA',
+            ),
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.groups_rounded),
+            label: _tr(
+              '커뮤니티',
+              'COMMUNITY',
+              ja: 'コミュニティ',
+              zh: '社区',
+              fr: 'COMMUNAUTÉ',
+              pt: 'COMUNIDADE',
+            ),
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.person_rounded),
+            label: _tr(
+              '프로필',
+              'PROFILE',
+              ja: 'プロフィール',
+              zh: '个人资料',
+              fr: 'PROFIL',
+              pt: 'PERFIL',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _glassCard({
+    required Widget child,
+    EdgeInsetsGeometry padding = const EdgeInsets.all(16),
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: panel,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white12),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x66000000),
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _animatedRoundLogo({required double size}) {
+    return AnimatedBuilder(
+      animation: _logoController,
+      builder:
+          (context, child) => Transform.rotate(
+            angle: _logoController.value * math.pi * 2,
+            child: child,
+          ),
+      child: _roundLogo(size: size),
+    );
+  }
+
+  Widget _roundLogo({required double size}) {
+    return Container(
+      width: size,
+      height: size,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: violet, width: 2),
+        boxShadow: const [
+          BoxShadow(color: Color(0x668B2CF6), blurRadius: 16, spreadRadius: 2),
+        ],
+      ),
+      child: Image.asset(
+        'assets/images/logo/orqube_plane_logo.png',
+        fit: BoxFit.cover,
+        errorBuilder:
+            (_, __, ___) => Container(
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [Color(0xFF8B2CF6), Color(0xFF2E1065), bg],
+                ),
+              ),
+              child: Icon(
+                Icons.flight_takeoff_rounded,
+                color: Colors.white,
+                size: size * 0.54,
+              ),
+            ),
+      ),
+    );
+  }
+}
+
+class _AlreadyClaimedException implements Exception {
+  const _AlreadyClaimedException();
+}
+
+class _WeeklyOperation {
+  final String code;
+  final String title;
+  final String hint;
+
+  const _WeeklyOperation({
+    required this.code,
+    required this.title,
+    required this.hint,
+  });
+}
+
+class _FeatureData {
+  final IconData icon;
+  final String title;
+  final String description;
+
+  const _FeatureData(this.icon, this.title, this.description);
+}
+
+class _CryptoQuote {
+  final String id;
+  final String symbol;
+  final String name;
+  final double price;
+  final double change24h;
+
+  const _CryptoQuote({
+    required this.id,
+    required this.symbol,
+    required this.name,
+    required this.price,
+    required this.change24h,
+  });
+
+  factory _CryptoQuote.fromJson(Map<String, dynamic> json) {
+    double number(dynamic value) {
+      if (value is num) return value.toDouble();
+      return double.tryParse('${value ?? ''}') ?? 0;
+    }
+
+    return _CryptoQuote(
+      id: '${json['id'] ?? ''}',
+      symbol: '${json['symbol'] ?? ''}'.toUpperCase(),
+      name: '${json['name'] ?? ''}',
+      price: number(json['current_price']),
+      change24h: number(
+        json['price_change_percentage_24h_in_currency'] ??
+            json['price_change_percentage_24h'],
+      ),
+    );
+  }
+}
+
+class _NewsTile extends StatelessWidget {
+  final String tag;
+  final String title;
+  final String date;
+
+  const _NewsTile({required this.tag, required this.title, required this.date});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(9),
+      decoration: BoxDecoration(
+        color: const Color(0xFF101027),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: _MobileDashboardPageState.purple,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              tag,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            date,
+            style: const TextStyle(color: Colors.white30, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MinerRow extends StatelessWidget {
+  final int rank;
+  final String name;
+  final String amount;
+  final bool active;
+
+  const _MinerRow({
+    required this.rank,
+    required this.name,
+    required this.amount,
+    this.active = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+        active
+            ? _MobileDashboardPageState.lime
+            : Colors.white.withOpacity(0.12);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color:
+            active
+                ? _MobileDashboardPageState.lime.withOpacity(0.08)
+                : const Color(0xFF101027),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(
+          color: active ? _MobileDashboardPageState.lime : Colors.white10,
+        ),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 13,
+            backgroundColor: color,
+            child: Text(
+              '$rank',
+              style: TextStyle(
+                color: active ? Colors.black : Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              name,
+              style: TextStyle(
+                color: active ? _MobileDashboardPageState.lime : Colors.white,
+                fontSize: 13,
+                fontWeight: active ? FontWeight.w900 : FontWeight.normal,
+              ),
+            ),
+          ),
+          Text(
+            amount,
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DrawerItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback? onTap;
+
+  const _DrawerItem(this.icon, this.title, {this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.white70),
+      title: Text(title, style: const TextStyle(color: Colors.white70)),
+      onTap: onTap ?? () => Navigator.pop(context),
+    );
+  }
+}
+
+class _SpacePainter extends CustomPainter {
+  final double progress;
+
+  const _SpacePainter({required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final starPaint = Paint()..color = Colors.white.withOpacity(0.55);
+    final purplePaint =
+        Paint()..color = _MobileDashboardPageState.violet.withOpacity(0.16);
+
+    for (int i = 0; i < 95; i++) {
+      final x = (i * 47.0) % size.width;
+      final y = (i * 83.0 + progress * 90) % size.height;
+      // V22.15: retain the existing motion/count, reduce star size by 65%.
+      final radius = (i % 3 + 1) * 0.38 * 0.35;
+      canvas.drawCircle(Offset(x, y), radius, starPaint);
+    }
+
+    for (int i = 0; i < 8; i++) {
+      final x = (i * 131.0 + progress * 50) % size.width;
+      final y = (i * 97.0) % size.height;
+      canvas.drawCircle(Offset(x, y), 42 + (i % 3) * 17, purplePaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SpacePainter oldDelegate) =>
+      oldDelegate.progress != progress;
+}
+
+class _MiningRingPainter extends CustomPainter {
+  final double progress;
+  final double pulse;
+  final bool active;
+
+  const _MiningRingPainter({
+    required this.progress,
+    required this.pulse,
+    required this.active,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = size.shortestSide / 2 - 14;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    final inactivePaint =
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 8
+          ..color = Colors.white.withOpacity(0.08);
+
+    canvas.drawCircle(center, radius, inactivePaint);
+
+    final glowPaint =
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 16 + pulse * 4
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10)
+          ..shader = SweepGradient(
+            transform: GradientRotation(progress * math.pi * 2),
+            colors:
+                active
+                    ? const [
+                      Color(0xFF8B2CF6),
+                      Color(0xFFCF78FF),
+                      Color(0xFFD7FF35),
+                      Color(0xFF8B2CF6),
+                    ]
+                    : const [
+                      Color(0xFF343445),
+                      Color(0xFF646474),
+                      Color(0xFF343445),
+                    ],
+          ).createShader(rect);
+
+    canvas.drawArc(rect, 0, math.pi * 2, false, glowPaint);
+
+    final ringPaint =
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 6
+          ..strokeCap = StrokeCap.round
+          ..shader = SweepGradient(
+            transform: GradientRotation(progress * math.pi * 2),
+            colors:
+                active
+                    ? const [
+                      Color(0xFF8B2CF6),
+                      Color(0xFFCF78FF),
+                      Color(0xFFD7FF35),
+                      Color(0xFF8B2CF6),
+                    ]
+                    : const [
+                      Color(0xFF454554),
+                      Color(0xFF777784),
+                      Color(0xFF454554),
+                    ],
+          ).createShader(rect);
+
+    canvas.drawArc(rect, 0, math.pi * 2, false, ringPaint);
+
+    if (active) {
+      final particlePaint = Paint()..color = _MobileDashboardPageState.lime;
+
+      for (int i = 0; i < 16; i++) {
+        final angle = progress * math.pi * 2 + i * math.pi / 8;
+        final particleRadius = radius + 10 + (i % 3) * 3;
+        final point = Offset(
+          center.dx + math.cos(angle) * particleRadius,
+          center.dy + math.sin(angle) * particleRadius,
+        );
+        canvas.drawCircle(point, i % 4 == 0 ? 2.2 : 1.1, particlePaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _MiningRingPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.pulse != pulse ||
+        oldDelegate.active != active;
+  }
+}

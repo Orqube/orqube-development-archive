@@ -1,0 +1,1 @@
+This file preserves an asset directory when extracting the project archive.

@@ -1,0 +1,4 @@
+이전 ORQUBE_DEV25_SMS_ADS_UI_PATCH 적용 후 사용하는 추가 수정입니다.
+lib/pages/phone_sign_in_dialog.dart 파일만 같은 경로에 덮어쓰세요.
+기존 실행을 Ctrl+C로 종료한 뒤 flutter run -d chrome을 다시 실행하세요.
+미지원 enum invisible을 normal로 변경했습니다. Flutter 빌드와 실제 SMS 검증은 실행하지 못했습니다.

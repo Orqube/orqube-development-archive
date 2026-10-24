@@ -1,0 +1,11 @@
+{
+  "network": "Kaia mainnet",
+  "chainId": 8217,
+  "tokenAddress": "0xe3998db5a59d650951faf264a67618b1eb4a307b",
+  "tokenAddressSource": "user supplied; on-chain behavior not verified in this environment",
+  "expectedMaximumSupplyTokens": "310000000",
+  "stakingAddress": null,
+  "deployed": false,
+  "plans": [{"months":3,"aprBps":400},{"months":6,"aprBps":600},{"months":9,"aprBps":700},{"months":12,"aprBps":800}],
+  "rewardBudget": null
+}

@@ -1,0 +1,11 @@
+2026-10-18 검증
+- functions_ai 전체 JavaScript 문법 검사 통과
+- 기존 테스트 43개 + 새 자동 발굴 테스트 18개 = 전체 61개 통과
+- 새 테스트: 관리자 인증, 비인증·비관리자 차단, 비활성 스케줄 무호출, 설정 검증, 분야·국가 순환, KST 일일 한도 초기화, 동시 실행 임대 잠금, 출처 없는 URL 제외, 규칙 미확인 분리, 검토 만료, 제공자 실패 기록과 잠금 해제, 같은 날 중복 초안 방지
+- 실제 firebase-functions 모듈에서 신규 HTTPS 함수와 매시간 스케줄 함수 메타데이터 로딩 확인
+- 테스트의 AI 호출·Firestore는 모의 객체로 검증. 실제 OpenAI 웹 검색 호출과 Firestore 쓰기는 미검증
+- Flutter SDK 미설치로 flutter analyze·Chrome 실행·웹/APK 빌드 미실행
+- 실제 Firebase 배포·Cloud Scheduler 운영·SNS 게시 미실행
+- 원본 전체 파일 비교: 기존 파일 4개만 수정, 신규 파일 8개 추가. 안전동행·토론·스테이킹 원본 파일 변경 없음
+- 새 Dart 2개 파일 및 마케팅 진입 화면의 Dart formatter 구문 파싱 통과. Flutter 의존성 분석을 대신하지는 않음
+- 최종 ZIP CRC 무결성 검사 통과

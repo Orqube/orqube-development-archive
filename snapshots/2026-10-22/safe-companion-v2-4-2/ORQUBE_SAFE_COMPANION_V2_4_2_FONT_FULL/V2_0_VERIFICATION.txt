@@ -1,0 +1,11 @@
+V2.0 static verification
+Dart grammar parse: 33 source/test files, 0 syntax errors.
+Relative import paths: exist.
+Translation messages: 490; all 5 target language values nonempty.
+Non-Korean translation values: no Hangul; named placeholders match source.
+Unrelated original Firestore rules: preserved exactly.
+Companion authorization: replaced old blocks, new mutual connections and per-person audiences.
+Flutter analyzer, Flutter tests, APK build: NOT RUN (SDK unavailable).
+Firestore emulator and real-device/network tests: NOT RUN.
+A grammar parse does not validate types, plugin APIs or security behavior.
+Group feature: private recipient grouping, not shared club membership or multi-person live map.

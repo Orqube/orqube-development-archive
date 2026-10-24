@@ -1,0 +1,7 @@
+한글 조합 표시 보완
+Noto Sans KR 전체 글꼴을 앱에 포함하고 한글 입력 화면의 독립 테마에도 적용했습니다. 천지인 아래아 U+318D, 자모 U+119E/U+3131/U+3163와 완성형 한글 포함 여부를 글꼴 cmap에서 검사했습니다. SIL OFL 라이선스 동봉. 입력 중 텍스트 변환/조합 영역 변경/자모 삭제는 하지 않습니다.
+사진 증상에 대한 글꼴 보완이며 실제 삼성 키보드 및 Flutter 빌드 검증은 수행하지 못했습니다.
+확인: 방 이름·토론 주제·프로필·Contact·로그인·사람 이름 입력에서 천지인 모음과 받침, 지우기, 완료, 한영 전환을 확인하세요. 계속 깨지면 입력 완료 후에도 유지되는지 알려주세요.
+공개용은 기존 Contact 및 토론 기능 수정을 포함합니다. flutter pub get → flutter analyze → flutter build web --release → firebase deploy --only "hosting,firestore:rules". 이전 토론 Functions가 아직 배포되지 않았다면 별도로 완료하세요.
+단독앱: powershell -ExecutionPolicy Bypass -File .\BUILD_TEST_APK.ps1
+결과: ORQUBE_SAFE_V2_4_2_TEST.apk

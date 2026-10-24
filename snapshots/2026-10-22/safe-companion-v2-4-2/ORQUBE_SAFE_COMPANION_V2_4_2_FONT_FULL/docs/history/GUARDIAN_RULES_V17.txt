@@ -1,0 +1,50 @@
+    // ORQUBE Safe Companion: add only, no public location reads.
+    function companionVerified() {
+      return signedIn() && request.auth.token.email_verified == true;
+    }
+    match /safety_requests/{sharingUid}/viewers/{viewerUid} {
+      allow read: if owner(sharingUid) || owner(viewerUid);
+      allow create: if companionVerified() && owner(viewerUid)
+        && sharingUid != viewerUid
+        && request.resource.data.keys().hasOnly(['viewerUid','name','createdAt'])
+        && request.resource.data.viewerUid == viewerUid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.createdAt == request.time;
+      allow update: if false;
+      allow delete: if owner(sharingUid) || owner(viewerUid);
+    }
+    match /safety_shares/{sharingUid} {
+      function validPayload() {
+        return request.resource.data.ownerUid == sharingUid
+          && request.resource.data.keys().hasOnly(['ownerUid','viewerUids','active','mode','latitude','longitude','route','updatedAt','expiresAt'])
+          && (!('viewerUids' in request.resource.data) || (request.resource.data.viewerUids is list && request.resource.data.viewerUids.size() <= 10))
+          && (!('route' in request.resource.data) || (request.resource.data.route is list && request.resource.data.route.size() <= 500))
+          && (!('latitude' in request.resource.data) || (request.resource.data.latitude is number && request.resource.data.latitude >= -90 && request.resource.data.latitude <= 90))
+          && (!('longitude' in request.resource.data) || (request.resource.data.longitude is number && request.resource.data.longitude >= -180 && request.resource.data.longitude <= 180));
+      }
+      function livePayload() {
+        return request.resource.data.get('active', false) != true || (
+          request.resource.data.latitude is number
+          && request.resource.data.longitude is number
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.expiresAt > request.time
+          && request.resource.data.expiresAt <= request.time + duration.value(3, 'm')
+        );
+      }
+      allow get: if owner(sharingUid) || (
+        companionVerified() && resource.data.get('active',false) == true
+        && resource.data.expiresAt > request.time
+        && request.auth.uid in resource.data.get('viewerUids',[])
+      );
+      allow list: if false;
+      allow create: if companionVerified() && owner(sharingUid)
+        && validPayload() && livePayload();
+      // Changing viewers cannot renew location freshness or change its coordinates.
+      allow update: if companionVerified() && owner(sharingUid)
+        && validPayload() && (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewerUids'])
+          || livePayload()
+        );
+      allow delete: if owner(sharingUid);
+    }

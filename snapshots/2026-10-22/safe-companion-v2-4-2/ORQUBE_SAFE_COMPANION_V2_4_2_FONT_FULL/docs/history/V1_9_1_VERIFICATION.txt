@@ -1,0 +1,12 @@
+V1.9.1 static verification
+Dart grammar: 27 files, 0 syntax errors.
+Relative import paths: exist.
+Known invalid static declarations: none.
+Translation catalog: 425 unique source messages; 2125 non-Korean values.
+Missing target translation values: 0.
+Hangul remaining inside these non-Korean translation values: 0.
+Named placeholder mismatches: 0.
+Detailed hiking guide: 11 sections, all 6 languages.
+Firestore rules: byte-identical to V1.9.
+Flutter analyze / Flutter tests / APK build / device UI: NOT RUN (SDK unavailable).
+Static checks do not establish complete runtime localization or native-language quality.

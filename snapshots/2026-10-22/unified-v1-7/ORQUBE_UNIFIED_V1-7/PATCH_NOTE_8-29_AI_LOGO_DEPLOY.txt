@@ -1,0 +1,26 @@
+ORQUBE 2026-08-29 AI LOGO DEPLOY FIX
+
+확인된 원인
+- 앱의 AI 로고 호출 코드는 이미 functions_ai의 generateLaunchLogoOptions를 향하고 있습니다.
+- 기존 firebase-debug.log에서 AI codebase 소스 분석은 정상이며 generateLaunchLogoOptions가 감지되었습니다.
+- 그러나 OPENAI_API_KEY Firebase Secret이 존재하지 않았고, Secret 입력 프롬프트가 중간에 종료되었습니다.
+- 그 결과 실제 Cloud Functions 배포가 끝나지 않았습니다.
+- 현재 화면의 `firebase functions:list` -> `No functions found in project orqube-576e7.` 이 이 상태와 일치합니다.
+
+이번 패치
+- 기존 Dart/화면 코드는 건드리지 않습니다.
+- DEPLOY_AI_LOGO_FIX.bat / .ps1 두 파일만 신규 추가합니다.
+- OPENAI_API_KEY 존재 여부 확인 -> 없으면 안전하게 대화형 입력 -> functions:ai만 배포 -> functions:list 확인 순서로 진행합니다.
+
+사용법
+1) 이 ZIP을 ORQUBE_SAFE_HIKING 상위 위치에서 풀어 덮어씁니다.
+2) ORQUBE_SAFE_HIKING 폴더 안의 DEPLOY_AI_LOGO_FIX.bat 를 더블클릭합니다.
+3) OPENAI_API_KEY 입력을 요구하면 실제 OpenAI API key를 붙여넣고 Enter 합니다.
+   키는 이 패치 파일에 저장하지 마십시오.
+4) 배포가 끝나면 functions:list에서 generateLaunchLogoOptions가 보여야 합니다.
+5) 그 다음 `flutter run -d chrome` 실행 후 로그인하여 AI Token Creator에서 로고 생성 버튼을 다시 누릅니다.
+
+중요
+- Firebase Functions 실행을 위해 Blaze 요금제가 필요합니다.
+- OpenAI API 사용 가능 상태/결제 상태와 유효한 API key가 별도로 필요합니다.
+- 키 자체를 채팅/스크린샷으로 보내지 마십시오.

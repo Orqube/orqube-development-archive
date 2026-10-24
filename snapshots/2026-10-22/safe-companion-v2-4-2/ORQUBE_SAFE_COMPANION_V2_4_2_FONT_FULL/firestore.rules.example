@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+ match /databases/{database}/documents {
+  function owner(uid) { return request.auth != null && request.auth.uid == uid; }
+  function verified(uid) { return owner(uid) && request.auth.token.email_verified == true; }
+  match /users/{uid} {
+   allow read: if owner(uid);
+   allow create: if verified(uid) && request.resource.data.keys().hasOnly(['safeHikingGuardian', 'updatedAt']);
+   allow update: if owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['safeHikingGuardian', 'updatedAt']);
+  }
+  match /hiking_sessions/{uid} {
+   allow read, delete: if owner(uid);
+   allow create, update: if verified(uid) && request.resource.data.uid == uid;
+  }
+  match /airsoft_live_locations/{uid} {
+   allow read, delete: if owner(uid);
+   allow create, update: if verified(uid) && request.resource.data.uid == uid;
+  }
+  match /airsoft_sos/{id} {
+   allow create: if request.auth != null && request.auth.token.email_verified == true && request.resource.data.uid == request.auth.uid;
+   allow read, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+  }
+  match /safe_home_sessions/{uid} {
+   allow read, delete: if owner(uid);
+   allow create, update: if verified(uid) && request.resource.data.uid == uid;
+  }
+  match /safety_requests/{uid}/viewers/{viewer} {
+   allow read, delete: if owner(uid) || owner(viewer);
+   allow create: if verified(viewer) && uid != viewer && request.resource.data.keys().hasOnly(['viewerUid','name','createdAt']) && request.resource.data.viewerUid == viewer;
+  }
+  match /safety_shares/{uid} {
+   allow get: if owner(uid) || (request.auth != null && request.auth.token.email_verified == true && resource.data.active == true && resource.data.expiresAt > request.time && request.auth.uid in resource.data.viewerUids);
+   allow list: if false;
+   allow delete: if owner(uid);
+   allow create, update: if verified(uid) && request.resource.data.ownerUid == uid && request.resource.data.keys().hasOnly(['ownerUid','viewerUids','active','mode','latitude','longitude','route','updatedAt','expiresAt']) && (!('viewerUids' in request.resource.data) || (request.resource.data.viewerUids is list && request.resource.data.viewerUids.size() <= 10)) && (!('route' in request.resource.data) || (request.resource.data.route is list && request.resource.data.route.size() <= 500));
+  }
+
+ }
+}

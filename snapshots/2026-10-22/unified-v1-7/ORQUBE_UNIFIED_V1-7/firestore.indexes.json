@@ -1,0 +1,6 @@
+{
+  "indexes": [{"collectionGroup": "marketing_campaigns", "queryScope": "COLLECTION", "fields": [
+    {"fieldPath": "campaignEngine", "order": "ASCENDING"},
+    {"fieldPath": "status", "order": "ASCENDING"}
+  ]}], "fieldOverrides": []
+}

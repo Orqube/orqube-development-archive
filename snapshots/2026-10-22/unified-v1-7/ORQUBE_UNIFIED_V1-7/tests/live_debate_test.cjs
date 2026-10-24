@@ -1,0 +1,34 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),vm=require('node:vm');
+test('room permissions, roles, turn control, deadline and duplicate messages',async()=>{
+ let now=1000000, seq=0; const docs=new Map();
+ const Stamp={now:()=>Stamp.fromMillis(now),fromMillis:n=>({toMillis:()=>n})};
+ const ref=path=>({path,id:path.split('/').at(-1),collection:n=>collection(path+'/'+n),set:async v=>docs.set(path,v)});
+ const collection=path=>({doc:id=>ref(path+'/'+(id||'room'+ ++seq))});
+ const snapshot=r=>({exists:docs.has(r.path),data:()=>docs.get(r.path)});
+ const db={collection,runTransaction:async fn=>{const writes=[];const tx={get:async r=>snapshot(r),set:(r,v)=>writes.push(()=>docs.set(r.path,v)),update:(r,v)=>writes.push(()=>docs.set(r.path,{...docs.get(r.path),...v})),create:(r,v)=>writes.push(()=>{assert(!docs.has(r.path));docs.set(r.path,v);})};const result=await fn(tx);writes.forEach(f=>f());return result;}};
+ const exports={};vm.runInNewContext(fs.readFileSync(__dirname+'/../functions_ai/live_debate_rooms.js','utf8'),{exports,console:{error(){}},Date:class extends Date{static now(){return now;}},require:n=>n==='firebase-functions/v2/https'?{onRequest:(o,f)=>f}:n==='firebase-admin/auth'?{getAuth:()=>({verifyIdToken:async token=>({uid:token,name:token,email_verified:token!=='unverified'})})}:{getFirestore:()=>db,Timestamp:Stamp}});
+ async function call(uid,action,data={}){now+=2500;let status=200,body;const res={set(){},status:n=>{status=n;return res;},json:v=>{body=v;return res;},send(){}};await exports.manageLiveDebateRoom({method:'POST',get:()=>uid?'Bearer '+uid:'',body:{action,...data}},res);return {status,...body};}
+ assert.equal((await call('', 'create')).status,401);
+ assert.equal((await call('unverified','create')).status,403);
+ const roomId=(await call('host','create',{topic:'공동 주제',minutes:1})).roomId;assert(roomId);
+ assert.equal((await call('p1','join',{roomId})).status,200);
+ assert.equal((await call('p2','join',{roomId})).status,200);
+ assert.equal((await call('outsider','start',{roomId})).status,403);
+ assert.equal((await call('p1','assign',{roomId,targetUid:'p2',role:'moderator'})).status,403);
+ assert.equal((await call('host','assign',{roomId,targetUid:'p1',role:'panel'})).status,200);
+ assert.equal((await call('host','assign',{roomId,targetUid:'p2',role:'moderator'})).status,200);
+ assert.equal((await call('p2','start',{roomId})).status,200);
+ assert.equal((await call('host','assign',{roomId,targetUid:'p1',role:'audience'})).status,409);
+ await call('audience','join',{roomId});assert.equal((await call('audience','send',{roomId,text:'no',messageId:'1'})).status,403);
+ await call('p2','floor',{roomId,targetUid:'host'});assert.equal((await call('p1','send',{roomId,text:'no',messageId:'1'})).status,403);
+ await call('p2','floor',{roomId,targetUid:'p1'});
+ assert.equal((await call('p1','send',{roomId,text:'hello',messageId:'m1'})).status,200);
+ assert.equal((await call('p1','send',{roomId,text:'hello',messageId:'m1'})).status,200);
+ assert.equal([...docs.keys()].filter(p=>p.includes('/messages/')).length,1);
+ now+=60000;assert.equal((await call('p1','send',{roomId,text:'late',messageId:'m2'})).status,409);
+ assert.equal((await call('p2','end',{roomId,summary:'최종 정리'})).status,200);
+ await call('p2','end',{roomId,summary:'변경 불가'});assert.equal(docs.get('live_debate_rooms/'+roomId).summary,'최종 정리');
+ assert.equal((await call('late','join',{roomId})).status,409);
+});
