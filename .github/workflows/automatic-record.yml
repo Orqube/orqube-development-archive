@@ -1,0 +1,39 @@
+name: Automatic development record
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'worklogs/automatic/**'
+  schedule:
+    - cron: '17 15 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: automatic-development-record
+  cancel-in-progress: false
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Generate repository change index
+        run: python3 scripts/record_history.py
+      - name: Save changed records
+        run: |
+          git add -- worklogs/automatic
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: update automatic worklog"
+          git push origin HEAD:main
