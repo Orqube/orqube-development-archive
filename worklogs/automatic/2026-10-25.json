@@ -1,0 +1,12 @@
+[
+  {
+    "commit": "e2eda4297958a4ab4f1fd0dea89545f81b24cdcb",
+    "subject": "Connect Token Studio source synchronization and service implementation record",
+    "committed_at": "2026-10-25T17:24:40+09:00",
+    "files": [
+      ".github/workflows/sync-token-studio.yml",
+      "TOKEN_STUDIO_SYNC.md",
+      "scripts/sync_token_studio.py"
+    ]
+  }
+]
