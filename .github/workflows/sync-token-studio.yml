@@ -1,0 +1,44 @@
+name: Sync Token Studio source
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/sync-token-studio.yml'
+      - 'scripts/sync_token_studio.py'
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: automatic-development-record
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Import published text source
+        run: python3 scripts/sync_token_studio.py
+      - name: Save source and deployment observation
+        run: |
+          git add -- live-sources/token-studio worklogs/sites
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore: synchronize Token Studio source"
+          fi
+      - name: Update automatic development index
+        run: |
+          python3 scripts/record_history.py
+          git add -- worklogs/automatic
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore: update automatic worklog"
+          fi
+          git push origin HEAD:main
