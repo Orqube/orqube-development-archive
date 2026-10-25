@@ -1,0 +1,3 @@
+import test from'node:test';import assert from'node:assert/strict';import{communityFields}from'../public/community-ai-core.mjs';
+test('AI 커뮤니티 응답을 사진 속 세 항목에 연결',()=>{assert.deepEqual(communityFields({data:{provider:'openai',vision:'우주 고양이 세계관',tagline:'고양이 창작자',utility:'창작물 공유와 행사'}}),{memeTheme:'우주 고양이 세계관',memeAudience:'고양이 창작자',memeParticipation:'창작물 공유와 행사'})});
+test('누락 응답을 거부하고 필드 길이 제한 적용',()=>{assert.throws(()=>communityFields({provider:'openai',vision:'a'}));const d=communityFields({provider:'openai',vision:'가'.repeat(300),tagline:'나'.repeat(300),utility:'다'.repeat(600),supply:999});assert.equal(d.memeTheme.length,200);assert.equal(d.memeAudience.length,200);assert.equal(d.memeParticipation.length,500);assert.equal(d.supply,undefined)});

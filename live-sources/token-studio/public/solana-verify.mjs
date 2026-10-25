@@ -1,0 +1,3 @@
+export const TOKEN_PROGRAM='TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
+export const METADATA_PROGRAM='metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s';
+export function verifyProgramAccounts(program,mint,metadata){if(!program?.executable)throw Error('SPL Token Program 실행 계정을 확인하지 못했습니다.');if(mint?.owner?.toBase58()!==TOKEN_PROGRAM)throw Error('민트 계정의 소유 프로그램이 표준 SPL Token Program과 다릅니다.');if(metadata?.owner?.toBase58()!==METADATA_PROGRAM)throw Error('메타데이터 소유 프로그램이 Metaplex와 다릅니다.');return{status:'passed',scope:'standard_program_and_issuance',programId:TOKEN_PROGRAM,metadataProgramId:METADATA_PROGRAM,customProgramSourceVerification:'not_applicable',sourceCodeMatchPerformed:false,sourceUrl:'https://www.solana-program.com/docs/token',checkedAt:new Date().toISOString()};}

@@ -1,0 +1,250 @@
+{
+  "schemaVersion": 1,
+  "project": "orqube-token-studio",
+  "scope": "sanitized-text-source",
+  "excluded": [
+    "runtime secrets",
+    "Firebase operational configuration",
+    "hosting identifiers",
+    "user data",
+    "binary assets",
+    "vendor bundles"
+  ],
+  "contentHash": "1787da4c0fac179fd4ed8f91a1b62609ec06024fa8639e5f94778af0f15ba81e",
+  "files": [
+    {
+      "path": "contracts/OrqubeToken.sol",
+      "sha256": "a7b5a29db70c39eb737715446a4350db67c96fad9fa956f03441ef7aca84322e"
+    },
+    {
+      "path": "OPERATIONS_KO.md",
+      "sha256": "9c1be021c69a671a5f7ae8f7cda7518704d3ffe1f60f10593a4245236be4f414"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "924d63b67f814f7ec25c1d0546fecd75a514dd86ae3af4967aa9f367ebe7360f"
+    },
+    {
+      "path": "package.json",
+      "sha256": "2da1f0bfb0f55bb058b043164d13eac9b5c8ea253fe40bd2e3b12afecc2f7c1f"
+    },
+    {
+      "path": "public/app.js",
+      "sha256": "44d653bca812d03232cda178b632f3829402f8c6f5a947fda39a0644d0a82bb7"
+    },
+    {
+      "path": "public/checkout.css",
+      "sha256": "16e1a0717b17a5e9702c58fd41017edf548b23653ac99071882e617554e0a949"
+    },
+    {
+      "path": "public/checkout.html",
+      "sha256": "bd7c448923137a20eeb636fa35097750fdcd1d3549f0f72d87565deebf4658cd"
+    },
+    {
+      "path": "public/checkout.js",
+      "sha256": "d5c22b232a637e5b02845c9b30f27589dfc71f87e9873c013e19dcae5199e168"
+    },
+    {
+      "path": "public/community-ai-core.mjs",
+      "sha256": "f9133235d2b397cd1680b6a1d43febfd3138bb136423cb900fb84c78bddbf72a"
+    },
+    {
+      "path": "public/continuation-core.mjs",
+      "sha256": "874430f88918782ccbb974d7726adfab51f1dbecfd04acc310f278b442f0537f"
+    },
+    {
+      "path": "public/continuation.js",
+      "sha256": "638d414b20fd480daf9bc94ad689dc331ce55fd78173291cdc070b6ff5483914"
+    },
+    {
+      "path": "public/index.html",
+      "sha256": "df6332ab5fd7e31615557aa0fd79f2e5e142ac2ecc01dfbe92d1e80bfdc6c813"
+    },
+    {
+      "path": "public/industry-catalog.json",
+      "sha256": "472f8aaed970cccc7c49f8feba23a4d75eec6fb8573e5f206db81623c3f744b7"
+    },
+    {
+      "path": "public/lifecycle.js",
+      "sha256": "a81a0b31b3670d27f089b50a67717e8db369a4ea2d2921db25ae6e1e96ed2290"
+    },
+    {
+      "path": "public/polygon-artifact.json",
+      "sha256": "71646596e5a1ea862ea75024e42ec632c72f76bb0ac21d9251280e36d10ff54a"
+    },
+    {
+      "path": "public/polygon-core.mjs",
+      "sha256": "5f8eb7b920c144c9f481fd436bdb2b48076053cf334d07f868bc97e42990b4af"
+    },
+    {
+      "path": "public/polygon.js",
+      "sha256": "a7e54433f8e3033bc9dde890921c6dfb4779de67c8ecdd937f1b067612c4a974"
+    },
+    {
+      "path": "public/preparation-ai-core.mjs",
+      "sha256": "9d298d73d6ccf5206dacb950a1867cb2db767e47d1f9bd5281905826fd297c31"
+    },
+    {
+      "path": "public/preparation.css",
+      "sha256": "aaa27f1ee2974f925d1f697c6bb8add5df754b063ced989250257bb965dadda7"
+    },
+    {
+      "path": "public/preparation.js",
+      "sha256": "6d3284e3566d7a4e6776a3dac390e1bf6ccc2591c58725ac3f8568ca41e54bbe"
+    },
+    {
+      "path": "public/scan-links-core.mjs",
+      "sha256": "ea054f926ed0798e52f928555640983dc7dba4748956dd6bf02a1cb519f4e580"
+    },
+    {
+      "path": "public/scan-links.js",
+      "sha256": "764e97c9c142e149b40a2ce260a15238a1e900ceec50e00683206e091dbe8f0a"
+    },
+    {
+      "path": "public/services.html",
+      "sha256": "9cb6d5840aaba6317c5250e25efcbc12340e8cb44fb5b7aea360634fab0c6316"
+    },
+    {
+      "path": "public/solana-core.mjs",
+      "sha256": "be596af82529787af20d085dab077a7cec90ff606f417025ae1915ee4e2e1b18"
+    },
+    {
+      "path": "public/solana-verify.mjs",
+      "sha256": "a50760953595d958f2ddae2540239dddab968fc52bdfb54f9b9582951c36018f"
+    },
+    {
+      "path": "public/solana-wallet.js",
+      "sha256": "15eca12f1f09b0e5f2e69a29f53dbf44e23e0531003ae5b03eecf2d09b943260"
+    },
+    {
+      "path": "public/solana.js",
+      "sha256": "efe007fa96c4b50b09ac7f56d18f1479a5538cfdc17a1fcc9a44f161c27ae864"
+    },
+    {
+      "path": "public/studio-navigation.css",
+      "sha256": "944ad5aa8142ab7607d0caea8846b0b21dba040802c35ebc768a0e77d26b315b"
+    },
+    {
+      "path": "public/studio-navigation.js",
+      "sha256": "8bcda0593d198e5313a0f4716ebd4b3eea2205a62d00bfeade376dbdbf377f38"
+    },
+    {
+      "path": "public/style.css",
+      "sha256": "6251763a0b2ea1fc91b87ad105eb4ee9a6439711893d9db1d160c97ff7acb75c"
+    },
+    {
+      "path": "public/token-ai-core.mjs",
+      "sha256": "3e0bfc097499b0c1ca06692a17a7e017223befe0509c964a33b85722e033942f"
+    },
+    {
+      "path": "public/token-create-core.mjs",
+      "sha256": "5cf17d4829fecde24e520e1f3aca4d9489c74572c9375ed386962fe3316564ca"
+    },
+    {
+      "path": "public/token-create.js",
+      "sha256": "bca5ca3b8a9a2ce20ab5fbc8dab3675160cfeec449b389e4fb74690399281309"
+    },
+    {
+      "path": "public/wallet-create.js",
+      "sha256": "77172e2cf7dc8915330b40a7e4255de4270966fddc0cbff4107cd2bbe4605e37"
+    },
+    {
+      "path": "public/wallet-vault.mjs",
+      "sha256": "d3ecf84971229f950dca14fc2d087233537ab47e28795ab7f7817fcd4ce4d7ca"
+    },
+    {
+      "path": "scripts/archive-source.mjs",
+      "sha256": "6e4d899acd564afdf5d44b5dde921e39794c60c44e27896b1738efdf94ab3255"
+    },
+    {
+      "path": "scripts/build-workspace.mjs",
+      "sha256": "d78e7006ed448da9a713ecca00fc5988da4ad2740e634cad84aa6d1e42f24ebd"
+    },
+    {
+      "path": "scripts/compile-polygon.mjs",
+      "sha256": "bab270a8be15c4ea797edf07b84d94c93ef803cc9be60b4497441e1a85fa7cb5"
+    },
+    {
+      "path": "scripts/sync_token_studio.py",
+      "sha256": "32965056ec0a177226d950c1167af66c8c73c7a69f50dd623dace661f3e67ad1"
+    },
+    {
+      "path": "src/browser-shim.mjs",
+      "sha256": "66db271c5221808660356b1ef557766df92b00bdb1ceec4803db4092ef206cd0"
+    },
+    {
+      "path": "src/solana-sdk.mjs",
+      "sha256": "a11d934c51a9ad11909129a1fe901853fc85a790de2835990acd13a684b6e54e"
+    },
+    {
+      "path": "src/solana-vault.mjs",
+      "sha256": "99b81eb09e24f38bc2bb9f9c92f0a59ed7d80b5fbffa63899fdb20bec2e8d2a0"
+    },
+    {
+      "path": "tests/archive-source.test.mjs",
+      "sha256": "ba090eabaf69b5941ff85c5130ad9b74a3146e92f72549bb569ffd0f351908a7"
+    },
+    {
+      "path": "tests/community-ai.test.mjs",
+      "sha256": "37bbb3e6568fecbf35739d69229d75869534b8e401ccd4139b89eb0ea62d14df"
+    },
+    {
+      "path": "tests/continuation.test.mjs",
+      "sha256": "feeba634fa20063132bb35c8afa069df95e4c76a45fb1b7ef34c60f8aecbb89d"
+    },
+    {
+      "path": "tests/payments.test.mjs",
+      "sha256": "086f3afce564492ed9ae5fb93aee28f2c6c40a916311078261014d418e864a45"
+    },
+    {
+      "path": "tests/polygon.test.mjs",
+      "sha256": "45e40f27c9465002ef111a6deab7e5680222321bb5215086f9924105b7044ee1"
+    },
+    {
+      "path": "tests/preparation-ai.test.mjs",
+      "sha256": "814d2bd25f11dca567448314b4d7f0c82995b36f4474caf4eee76b4584c6ef62"
+    },
+    {
+      "path": "tests/preparation.test.mjs",
+      "sha256": "d32a220e2fbe4cdd74685dd5e111599f37903479822d0915975089ffe1290f85"
+    },
+    {
+      "path": "tests/solana-sdk-browser.html",
+      "sha256": "29e578577e2f6631cadc39c8d06a619bff9f6024fa697de6ca48f34a8d99947a"
+    },
+    {
+      "path": "tests/solana-vault.test.mjs",
+      "sha256": "819b44accd59a3869665120b1dfe9b3812149e49193ec65c3f1c7067ac19f9a5"
+    },
+    {
+      "path": "tests/solana.test.mjs",
+      "sha256": "484d8138b32ecb71215ed8c750ca5a88b176fef1da454b993bf82d89cd3d7760"
+    },
+    {
+      "path": "tests/token-ai.test.mjs",
+      "sha256": "10213ebced5b4aeb3964de47ba2037c30116d00e04394ce08e7f2a1265d2904f"
+    },
+    {
+      "path": "tests/token-create.test.mjs",
+      "sha256": "ba7e57f90017e39496cf4eba1b71a0e877e88723cb0f59bad0a86ed0c7e447d5"
+    },
+    {
+      "path": "tests/wallet-vault.test.mjs",
+      "sha256": "3cb644eb87e0f690e36cbd387466804d54f384a93520fef1dd36d1e79c6bbc78"
+    },
+    {
+      "path": "worker/core.mjs",
+      "sha256": "bd43faa6a30b7d5362837db44698d6ade68b2d0b31469a81d45806924d8de2c0"
+    },
+    {
+      "path": "worker/index.js",
+      "sha256": "37b31501f0d826138249c32ec90cbf483122a9ef0237cd5d4b8b797de0bfd131"
+    },
+    {
+      "path": "worker/payments.mjs",
+      "sha256": "0c8f97ab653df1b1ab789654bd7b5ede4bc41764a01440998b8077bf6c4bba07"
+    }
+  ],
+  "sourceUrl": "https://token.orqubic.com/development/token-studio-source.json",
+  "observedAt": "2026-10-25T08:25:07.142072+00:00"
+}

@@ -1,0 +1,17 @@
+import {generateMnemonic,mnemonicToSeedSync,validateMnemonic} from '@scure/bip39';
+import {wordlist} from '@scure/bip39/wordlists/english';
+import {hmac} from '@noble/hashes/hmac';
+import {sha512} from '@noble/hashes/sha512';
+import {Keypair} from '@solana/web3.js';
+export const PATH="m/44'/501'/0'/0'";
+const enc=new TextEncoder();
+export function keyFromMnemonic(phrase){if(!validateMnemonic(phrase,wordlist))throw Error('유효하지 않은 복구문구');const seed=mnemonicToSeedSync(phrase);let data=hmac(sha512,enc.encode('ed25519 seed'),seed);seed.fill(0);for(const i of [44,501,0,0]){const input=new Uint8Array(37);input.set(data.slice(0,32),1);new DataView(input.buffer).setUint32(33,i+0x80000000,false);const next=hmac(sha512,data.slice(32),input);data.fill(0);input.fill(0);data=next;}const kp=Keypair.fromSeed(data.slice(0,32));data.fill(0);return kp;}
+export function newWallet(){const phrase=generateMnemonic(wordlist,128),kp=keyFromMnemonic(phrase);return{phrase,address:kp.publicKey.toBase58(),secretKey:kp.secretKey,path:PATH};}
+export function checkBackup(phrase,indices,answers){const words=phrase.split(' ');return indices.length===3&&new Set(indices).size===3&&indices.every((i,j)=>i>=0&&i<12&&words[i]===String(answers[j]||'').trim().toLowerCase());}
+function passwordOK(p){if(typeof p!=='string'||p.length<12||p.length>128)throw Error('암호화 비밀번호는 12~128자로 입력하세요.');}
+const b64=b=>btoa(String.fromCharCode(...b));
+const un64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function aes(password,salt,usage){const base=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt,iterations:310000},base,{name:'AES-GCM',length:256},false,usage);}
+export function validateVault(v,uid){if(v?.format!=='orqube-solana-v1'||v.uid!==uid||v.path!==PATH||v.kdf!=='PBKDF2-SHA256'||v.iterations!==310000||typeof v.address!=='string'||!/^.{32,44}$/.test(v.address)||typeof v.ciphertext!=='string'||un64(v.salt).length!==16||un64(v.iv).length!==12||un64(v.ciphertext).length!==80)throw Error('이 계정의 솔라나 암호화 백업 형식이 아닙니다.');return v;}
+export async function sealWallet(wallet,uid,password,confirm){if(!uid)throw Error('로그인이 필요합니다.');passwordOK(password);if(password!==confirm)throw Error('비밀번호가 일치하지 않습니다.');const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));const header={format:'orqube-solana-v1',uid,address:wallet.address,path:PATH,kdf:'PBKDF2-SHA256',iterations:310000};const ciphertext=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:enc.encode(JSON.stringify(header))},await aes(password,salt,['encrypt']),wallet.secretKey);return{...header,salt:b64(salt),iv:b64(iv),ciphertext:b64(new Uint8Array(ciphertext)),createdAt:new Date().toISOString()};}
+export async function unlockWallet(v,uid,password){validateVault(v,uid);passwordOK(password);const header={format:v.format,uid:v.uid,address:v.address,path:v.path,kdf:v.kdf,iterations:v.iterations};let bytes;try{bytes=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:un64(v.iv),additionalData:enc.encode(JSON.stringify(header))},await aes(password,un64(v.salt),['decrypt']),un64(v.ciphertext)))}catch{throw Error('비밀번호가 다르거나 백업 파일이 손상되었습니다.');}const kp=Keypair.fromSecretKey(bytes.slice());bytes.fill(0);if(kp.publicKey.toBase58()!==v.address)throw Error('복구 주소가 백업 주소와 다릅니다.');return kp;}
