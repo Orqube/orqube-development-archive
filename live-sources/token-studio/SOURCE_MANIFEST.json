@@ -10,7 +10,7 @@
     "binary assets",
     "vendor bundles"
   ],
-  "contentHash": "1787da4c0fac179fd4ed8f91a1b62609ec06024fa8639e5f94778af0f15ba81e",
+  "contentHash": "19dc89f2638aa4f3d77e19a30eb916f7883e9c7663c9a7864516dd838974618a",
   "files": [
     {
       "path": "contracts/OrqubeToken.sol",
@@ -58,7 +58,7 @@
     },
     {
       "path": "public/index.html",
-      "sha256": "df6332ab5fd7e31615557aa0fd79f2e5e142ac2ecc01dfbe92d1e80bfdc6c813"
+      "sha256": "1c45c912a465104ffdbfe4f4dd20985d3c62da717bfe5fd2cadc90f39f3241a5"
     },
     {
       "path": "public/industry-catalog.json",
@@ -102,7 +102,7 @@
     },
     {
       "path": "public/services.html",
-      "sha256": "9cb6d5840aaba6317c5250e25efcbc12340e8cb44fb5b7aea360634fab0c6316"
+      "sha256": "d98b41e165d6a1395c100c66f2d745015b53f48afd80e7f75aab254eed90191f"
     },
     {
       "path": "public/solana-core.mjs",
@@ -121,12 +121,20 @@
       "sha256": "efe007fa96c4b50b09ac7f56d18f1479a5538cfdc17a1fcc9a44f161c27ae864"
     },
     {
+      "path": "public/sto-notes.css",
+      "sha256": "e8ec6527990688ae92a7cc4c8979437d92a9d4bcd78879cde834253ef4a33f9e"
+    },
+    {
+      "path": "public/sto-notes.html",
+      "sha256": "6c8ef4ef7ae76fa12ecac6cd660eaecb0970d0f449c8ec7ad4684f6bf901d853"
+    },
+    {
       "path": "public/studio-navigation.css",
       "sha256": "944ad5aa8142ab7607d0caea8846b0b21dba040802c35ebc768a0e77d26b315b"
     },
     {
       "path": "public/studio-navigation.js",
-      "sha256": "8bcda0593d198e5313a0f4716ebd4b3eea2205a62d00bfeade376dbdbf377f38"
+      "sha256": "cdcc558814122bcc7b33e2daaf933f29d0a605aaab916b0677a1911eb981f512"
     },
     {
       "path": "public/style.css",
@@ -246,5 +254,5 @@
     }
   ],
   "sourceUrl": "https://token.orqubic.com/development/token-studio-source.json",
-  "observedAt": "2026-10-25T08:25:07.142072+00:00"
+  "observedAt": "2026-10-25T22:06:58.693536+00:00"
 }
