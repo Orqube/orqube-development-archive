@@ -1,0 +1,16 @@
+[
+  {
+    "commit": "2036fd672294db9689ebe4a13a42cd9eaf147e56",
+    "subject": "chore: synchronize Token Studio source",
+    "committed_at": "2026-10-25T22:06:58Z",
+    "files": [
+      "live-sources/token-studio/SOURCE_MANIFEST.json",
+      "live-sources/token-studio/public/index.html",
+      "live-sources/token-studio/public/services.html",
+      "live-sources/token-studio/public/sto-notes.css",
+      "live-sources/token-studio/public/sto-notes.html",
+      "live-sources/token-studio/public/studio-navigation.js",
+      "worklogs/sites/2026-10-26/19dc89f2638aa4f3d77e19a30eb916f7883e9c7663c9a7864516dd838974618a.json"
+    ]
+  }
+]
