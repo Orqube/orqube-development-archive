@@ -29,6 +29,9 @@ ORQUBE(오르큐브)의 개발 이력과 확보된 소스 스냅샷을 정리하
 
 ## 운영 문서
 
+- [문서 작성·이전 자료 정리 기준](docs/documentation-guidelines.md)
+- [테스트 코인 수령·적립 운영 설명서](docs/testnet-funding-operations.md) · [개발 계획 #1](https://github.com/Orqube/orqube-development-archive/issues/1)
+
 - [작업일지 양식](worklogs/TEMPLATE.md)
 - [자동 기록 상태](AUTO_RECORDING.md)
 - [프로필 설정 안내](PROFILE_SETUP.md)
