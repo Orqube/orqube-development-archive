@@ -41,5 +41,13 @@
       "live-sources/token-studio/worker/payments.mjs",
       "worklogs/sites/2026-10-26/2794fc7ab3c3b7c092a191aa9f04c631ad3dab1603294b5fac7ae872c9102598.json"
     ]
+  },
+  {
+    "commit": "735bfc8df3945503062576362e420ba4c3f5311a",
+    "subject": "docs: record testnet funding operations plan",
+    "committed_at": "2026-10-26T09:30:08+09:00",
+    "files": [
+      "docs/testnet-funding-operations.md"
+    ]
   }
 ]
