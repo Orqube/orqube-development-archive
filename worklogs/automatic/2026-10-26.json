@@ -65,5 +65,13 @@
     "files": [
       "README.md"
     ]
+  },
+  {
+    "commit": "0c509a03eebfa23b23f967bac3b5a0e7b9789ab1",
+    "subject": "security: pause automatic source publication pending review",
+    "committed_at": "2026-10-26T09:48:47+09:00",
+    "files": [
+      "scripts/sync_token_studio.py"
+    ]
   }
 ]
