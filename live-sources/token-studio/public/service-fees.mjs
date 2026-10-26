@@ -1,0 +1,2 @@
+export const policyVersion='2026-10-26-coin-only-v1';
+export function serviceFee(chain,network='mainnet'){if(!['Solana','Polygon','Kaia'].includes(chain)||!['mainnet','testnet'].includes(network))throw Error('지원 체인·네트워크를 확인하세요.');const free=network==='testnet',sol=chain==='Solana';return{chain,network,kai:free?0:sol?200:500,orqube:free?0:sol?50:100,paymentNetwork:'Kaia Mainnet',name:free?'테스트넷 체험':sol?'솔라나 메인넷 발행 서비스':'메인넷 소스검증·서비스',sourceVerification:!free&&!sol,gasIncluded:false,policyVersion};}

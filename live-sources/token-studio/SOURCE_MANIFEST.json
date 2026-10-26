@@ -10,7 +10,7 @@
     "binary assets",
     "vendor bundles"
   ],
-  "contentHash": "19dc89f2638aa4f3d77e19a30eb916f7883e9c7663c9a7864516dd838974618a",
+  "contentHash": "2794fc7ab3c3b7c092a191aa9f04c631ad3dab1603294b5fac7ae872c9102598",
   "files": [
     {
       "path": "contracts/OrqubeToken.sol",
@@ -34,15 +34,15 @@
     },
     {
       "path": "public/checkout.css",
-      "sha256": "16e1a0717b17a5e9702c58fd41017edf548b23653ac99071882e617554e0a949"
+      "sha256": "0e14d278a14cd1eb355faeb75bd51e1e6d220bcc47f6fcd17b0537f3d5d2393a"
     },
     {
       "path": "public/checkout.html",
-      "sha256": "bd7c448923137a20eeb636fa35097750fdcd1d3549f0f72d87565deebf4658cd"
+      "sha256": "08a8e7abedf0e4ab567ef0cc2ec4c8d9d4a340b6c09b6940a2f9e0ece3e6b61d"
     },
     {
       "path": "public/checkout.js",
-      "sha256": "d5c22b232a637e5b02845c9b30f27589dfc71f87e9873c013e19dcae5199e168"
+      "sha256": "af6facc3c16807f462def202543803fe32907dc5e12af41e340190770cdef043"
     },
     {
       "path": "public/community-ai-core.mjs",
@@ -58,7 +58,7 @@
     },
     {
       "path": "public/index.html",
-      "sha256": "1c45c912a465104ffdbfe4f4dd20985d3c62da717bfe5fd2cadc90f39f3241a5"
+      "sha256": "d0fd9885267562eb92b78202427057d695074d7a646d19f181f3192151368d08"
     },
     {
       "path": "public/industry-catalog.json",
@@ -66,7 +66,7 @@
     },
     {
       "path": "public/lifecycle.js",
-      "sha256": "a81a0b31b3670d27f089b50a67717e8db369a4ea2d2921db25ae6e1e96ed2290"
+      "sha256": "7294920e3b3caec86bc973034a6be8f9657711d6daf29dae0528e8d14bfbea1a"
     },
     {
       "path": "public/polygon-artifact.json",
@@ -93,12 +93,20 @@
       "sha256": "6d3284e3566d7a4e6776a3dac390e1bf6ccc2591c58725ac3f8568ca41e54bbe"
     },
     {
+      "path": "public/quick-create-core.mjs",
+      "sha256": "18f912a92b391ace44f1852b9d9dc9be1bae2710ed2f237af3a5fad66b7cef70"
+    },
+    {
       "path": "public/scan-links-core.mjs",
       "sha256": "ea054f926ed0798e52f928555640983dc7dba4748956dd6bf02a1cb519f4e580"
     },
     {
       "path": "public/scan-links.js",
       "sha256": "764e97c9c142e149b40a2ce260a15238a1e900ceec50e00683206e091dbe8f0a"
+    },
+    {
+      "path": "public/service-fees.mjs",
+      "sha256": "2d7d297c8afb3b8861fa09e036e518e50ebbc378fe38a8dd5f2cd93e1e09794b"
     },
     {
       "path": "public/services.html",
@@ -126,7 +134,23 @@
     },
     {
       "path": "public/sto-notes.html",
-      "sha256": "6c8ef4ef7ae76fa12ecac6cd660eaecb0970d0f449c8ec7ad4684f6bf901d853"
+      "sha256": "8bb91eea0c946ee83053d429aef9b27e6c3d87c639ef50c3e31d9efb16b7e691"
+    },
+    {
+      "path": "public/sto-sim-core.mjs",
+      "sha256": "c3185a1ef3467cdef1a8682e12bc8b6c43c63ec150e1231ddba6c019f3e07f81"
+    },
+    {
+      "path": "public/sto-simulator.css",
+      "sha256": "0ab409c9818969cc4f342cfd61edc475d1c1940b2e59006d5f5dfc2bb10b1ee5"
+    },
+    {
+      "path": "public/sto-simulator.html",
+      "sha256": "330bc15959b0366b44975395ec657b60ccb04383187a5c9447057dfcfd248b95"
+    },
+    {
+      "path": "public/sto-simulator.js",
+      "sha256": "5778b39e9e28390ee982f33c649cbf2692ef2157a4879c70e7acd7231d59dbe6"
     },
     {
       "path": "public/studio-navigation.css",
@@ -134,11 +158,11 @@
     },
     {
       "path": "public/studio-navigation.js",
-      "sha256": "cdcc558814122bcc7b33e2daaf933f29d0a605aaab916b0677a1911eb981f512"
+      "sha256": "d417131f642e65a5e0359f779fe50d1cdd3747cef6a9b0eee0aa74c618613955"
     },
     {
       "path": "public/style.css",
-      "sha256": "6251763a0b2ea1fc91b87ad105eb4ee9a6439711893d9db1d160c97ff7acb75c"
+      "sha256": "81cec2df329fe39e2a0be5d7def4c290c8a91974fec75466f0ce1a5b4069de70"
     },
     {
       "path": "public/token-ai-core.mjs",
@@ -150,7 +174,7 @@
     },
     {
       "path": "public/token-create.js",
-      "sha256": "bca5ca3b8a9a2ce20ab5fbc8dab3675160cfeec449b389e4fb74690399281309"
+      "sha256": "2e9f776751bdc571b6f8754d8c1a272ffd8cfecc0e8e5dd94345cfdb68674666"
     },
     {
       "path": "public/wallet-create.js",
@@ -202,7 +226,7 @@
     },
     {
       "path": "tests/payments.test.mjs",
-      "sha256": "086f3afce564492ed9ae5fb93aee28f2c6c40a916311078261014d418e864a45"
+      "sha256": "9a9bb22454100e26bfad5a0544c5b74205323c7c40dce35e49421f8d3d1a5eae"
     },
     {
       "path": "tests/polygon.test.mjs",
@@ -217,6 +241,10 @@
       "sha256": "d32a220e2fbe4cdd74685dd5e111599f37903479822d0915975089ffe1290f85"
     },
     {
+      "path": "tests/quick-create.test.mjs",
+      "sha256": "19082f606095a4cc1c72e337e2737708d13f3cac4d4dc078add3509dea57264d"
+    },
+    {
       "path": "tests/solana-sdk-browser.html",
       "sha256": "29e578577e2f6631cadc39c8d06a619bff9f6024fa697de6ca48f34a8d99947a"
     },
@@ -227,6 +255,10 @@
     {
       "path": "tests/solana.test.mjs",
       "sha256": "484d8138b32ecb71215ed8c750ca5a88b176fef1da454b993bf82d89cd3d7760"
+    },
+    {
+      "path": "tests/sto-sim.test.mjs",
+      "sha256": "13d4a44c90389e0c670fb05afff24b587324966e5786623b6e8b3f90b40c210d"
     },
     {
       "path": "tests/token-ai.test.mjs",
@@ -249,10 +281,14 @@
       "sha256": "37b31501f0d826138249c32ec90cbf483122a9ef0237cd5d4b8b797de0bfd131"
     },
     {
-      "path": "worker/payments.mjs",
+      "path": "worker/legacy-test-payments.mjs",
       "sha256": "0c8f97ab653df1b1ab789654bd7b5ede4bc41764a01440998b8077bf6c4bba07"
+    },
+    {
+      "path": "worker/payments.mjs",
+      "sha256": "19afc48862656bc5a2adacc567a796f03214403fb6e331471bb37b949d99882e"
     }
   ],
   "sourceUrl": "https://token.orqubic.com/development/token-studio-source.json",
-  "observedAt": "2026-10-25T22:06:58.693536+00:00"
+  "observedAt": "2026-10-26T00:21:12.411828+00:00"
 }
