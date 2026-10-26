@@ -57,5 +57,13 @@
     "files": [
       "docs/documentation-guidelines.md"
     ]
+  },
+  {
+    "commit": "53655f511df8d3aa6dca9799656adbb716cac327",
+    "subject": "docs: link documentation guidelines and funding plan",
+    "committed_at": "2026-10-26T09:33:57+09:00",
+    "files": [
+      "README.md"
+    ]
   }
 ]
