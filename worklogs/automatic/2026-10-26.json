@@ -12,5 +12,34 @@
       "live-sources/token-studio/public/studio-navigation.js",
       "worklogs/sites/2026-10-26/19dc89f2638aa4f3d77e19a30eb916f7883e9c7663c9a7864516dd838974618a.json"
     ]
+  },
+  {
+    "commit": "7b5e63f2e740384862f2a9c86f832cc2d32c94ba",
+    "subject": "chore: synchronize Token Studio source",
+    "committed_at": "2026-10-26T00:21:12Z",
+    "files": [
+      "live-sources/token-studio/SOURCE_MANIFEST.json",
+      "live-sources/token-studio/public/checkout.css",
+      "live-sources/token-studio/public/checkout.html",
+      "live-sources/token-studio/public/checkout.js",
+      "live-sources/token-studio/public/index.html",
+      "live-sources/token-studio/public/lifecycle.js",
+      "live-sources/token-studio/public/quick-create-core.mjs",
+      "live-sources/token-studio/public/service-fees.mjs",
+      "live-sources/token-studio/public/sto-notes.html",
+      "live-sources/token-studio/public/sto-sim-core.mjs",
+      "live-sources/token-studio/public/sto-simulator.css",
+      "live-sources/token-studio/public/sto-simulator.html",
+      "live-sources/token-studio/public/sto-simulator.js",
+      "live-sources/token-studio/public/studio-navigation.js",
+      "live-sources/token-studio/public/style.css",
+      "live-sources/token-studio/public/token-create.js",
+      "live-sources/token-studio/tests/payments.test.mjs",
+      "live-sources/token-studio/tests/quick-create.test.mjs",
+      "live-sources/token-studio/tests/sto-sim.test.mjs",
+      "live-sources/token-studio/worker/legacy-test-payments.mjs",
+      "live-sources/token-studio/worker/payments.mjs",
+      "worklogs/sites/2026-10-26/2794fc7ab3c3b7c092a191aa9f04c631ad3dab1603294b5fac7ae872c9102598.json"
+    ]
   }
 ]
