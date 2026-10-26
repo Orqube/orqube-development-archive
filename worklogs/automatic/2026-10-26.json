@@ -49,5 +49,13 @@
     "files": [
       "docs/testnet-funding-operations.md"
     ]
+  },
+  {
+    "commit": "454781218956ec8c430a9d5dac6960451a0e71f4",
+    "subject": "docs: add development documentation guidelines",
+    "committed_at": "2026-10-26T09:33:47+09:00",
+    "files": [
+      "docs/documentation-guidelines.md"
+    ]
   }
 ]
