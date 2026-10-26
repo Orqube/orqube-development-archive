@@ -73,5 +73,13 @@
     "files": [
       "scripts/sync_token_studio.py"
     ]
+  },
+  {
+    "commit": "016a76899612ea764575fafe57ee485f7871597a",
+    "subject": "docs: record publication review status and public/private separation",
+    "committed_at": "2026-10-26T09:48:55+09:00",
+    "files": [
+      "docs/publication-review.md"
+    ]
   }
 ]
