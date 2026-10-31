@@ -49,5 +49,13 @@
     "files": [
       "docs/independent-chain-post-quantum-v09.md"
     ]
+  },
+  {
+    "commit": "44e75a421cdd7c356ce11b1b9fc0743c1f912969",
+    "subject": "Remove post-quantum laboratory status document at owner's request",
+    "committed_at": "2026-10-31T21:57:41+09:00",
+    "files": [
+      "docs/independent-chain-post-quantum-v09.md"
+    ]
   }
 ]
