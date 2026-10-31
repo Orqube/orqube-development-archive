@@ -7,6 +7,12 @@ import subprocess
 from collections import defaultdict
 from zoneinfo import ZoneInfo
 
+# Translate display titles without rewriting immutable historical Git commits.
+ENGLISH_SUBJECTS = {
+    "c9c772aee3a030430838455aed55ce788a499aeb": "docs: document mathematical validation and state-transition rules for independent chain v0.5",
+    "a4c9f3fed529ac400d6668dfa8baa69eb415861f": "docs: add links to the independent-chain mathematical specification and verification record"
+}
+
 def git(*args):
     return subprocess.check_output(["git", *args]).decode("utf-8", errors="replace")
 
@@ -22,12 +28,15 @@ def generate():
         paths = [p for p in paths if p and not p.startswith("worklogs/automatic/")]
         if not paths:
             continue
-        days[date].append({"commit": sha, "subject": subject, "committed_at": timestamp, "files": paths})
+        entry = {"commit": sha, "subject": ENGLISH_SUBJECTS.get(sha, subject), "committed_at": timestamp, "files": paths}
+        if sha in ENGLISH_SUBJECTS:
+            entry["subject_is_translation"] = True
+        days[date].append(entry)
     root = pathlib.Path("worklogs/automatic")
     root.mkdir(parents=True, exist_ok=True)
     for date, entries in sorted(days.items()):
         (root / (date + ".json")).write_text(json.dumps(entries, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        lines = ["# Development record — " + date, "", "Commit dates use Asia/Seoul. This index records repository changes; it does not certify tests or deployments.", ""]
+        lines = ["# Development record — " + date, "", "Commit dates use Asia/Seoul. This index records repository changes; it does not certify tests or deployments. Selected historical titles are displayed in English translation; original Git commits remain unchanged.", ""]
         for item in entries:
             # JSON string quoting prevents commit titles from injecting Markdown blocks.
             title = json.dumps(item["subject"], ensure_ascii=False)
