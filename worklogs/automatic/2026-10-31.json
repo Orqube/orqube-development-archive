@@ -1,0 +1,10 @@
+[
+  {
+    "commit": "c9c772aee3a030430838455aed55ce788a499aeb",
+    "subject": "docs: 독립체인 v0.5의 수학적 검증·상태 전이 규칙 정리",
+    "committed_at": "2026-10-31T17:30:59+09:00",
+    "files": [
+      "docs/independent-chain-mathematical-spec.md"
+    ]
+  }
+]
