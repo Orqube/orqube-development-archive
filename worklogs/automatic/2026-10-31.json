@@ -41,5 +41,13 @@
       "README.md",
       "scripts/record_history.py"
     ]
+  },
+  {
+    "commit": "0c002bd77a731bc618a5d4df716c6bc14f63717b",
+    "subject": "Document v0.9 mandatory ML-DSA-65 laboratory implementation",
+    "committed_at": "2026-10-31T21:53:27+09:00",
+    "files": [
+      "docs/independent-chain-post-quantum-v09.md"
+    ]
   }
 ]
