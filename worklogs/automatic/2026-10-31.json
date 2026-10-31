@@ -22,5 +22,13 @@
     "files": [
       "docs/independent-chain-mathematical-spec.md"
     ]
+  },
+  {
+    "commit": "cfc7d3e7ef9c3f3a1ac18251ec81aabcdb1c945d",
+    "subject": "docs: require English for independent-chain technical work",
+    "committed_at": "2026-10-31T17:36:42+09:00",
+    "files": [
+      "docs/documentation-guidelines.md"
+    ]
   }
 ]
