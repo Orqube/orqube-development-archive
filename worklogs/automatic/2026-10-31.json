@@ -14,5 +14,13 @@
     "files": [
       "README.md"
     ]
+  },
+  {
+    "commit": "1d3b537e5a48478623c44921d1e1c0fbce3d96fb",
+    "subject": "docs: publish independent-chain mathematical specification in English",
+    "committed_at": "2026-10-31T17:35:48+09:00",
+    "files": [
+      "docs/independent-chain-mathematical-spec.md"
+    ]
   }
 ]
