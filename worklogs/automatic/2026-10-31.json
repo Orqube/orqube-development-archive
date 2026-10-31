@@ -32,5 +32,14 @@
     "files": [
       "docs/documentation-guidelines.md"
     ]
+  },
+  {
+    "commit": "aa9878376564a28a6739a025b19b1657c2f41a6a",
+    "subject": "docs: translate remaining independent-chain records and index titles into English",
+    "committed_at": "2026-10-31T17:39:02+09:00",
+    "files": [
+      "README.md",
+      "scripts/record_history.py"
+    ]
   }
 ]
