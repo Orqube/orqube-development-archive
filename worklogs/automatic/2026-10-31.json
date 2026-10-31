@@ -6,5 +6,13 @@
     "files": [
       "docs/independent-chain-mathematical-spec.md"
     ]
+  },
+  {
+    "commit": "a4c9f3fed529ac400d6668dfa8baa69eb415861f",
+    "subject": "docs: 독립체인 수학식 문서 및 점검 기록 링크 추가",
+    "committed_at": "2026-10-31T17:31:13+09:00",
+    "files": [
+      "README.md"
+    ]
   }
 ]
