@@ -42,3 +42,7 @@
 이 문서는 기록 방식과 작성 기준을 정한 것이다.
 이전 문서 전체의 재정리나 운영 사이트 변경을 완료했다는 의미는 아니다.
 테스트 코인 수령 계획은 [Issue #1](https://github.com/Orqube/orqube-development-archive/issues/1), 설명서는 [테스트 코인 수령·적립 운영 설명서](testnet-funding-operations.md)에서 관리한다.
+
+## Independent-chain documentation language
+
+Effective 2026-10-31, independent-blockchain technical documentation, development records, new code comments, and related issue/PR descriptions must be written in English. Use English commit messages for this work. Preserve historical Git records; do not rewrite existing commit history merely to translate it. The mathematical specification and Issue #2 have been revised in English. Continue to distinguish plans, implementation, recorded tests, and deployment. Do not introduce private issuance parameters or unsupported security claims.
