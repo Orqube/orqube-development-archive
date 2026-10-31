@@ -27,6 +27,11 @@ ORQUBE(오르큐브)의 개발 이력과 확보된 소스 스냅샷을 정리하
 
 등록된 소스는 자산·운영 설정을 제외한 보관본입니다. [공개 등록 범위와 제외 목록](PUBLICATION_SCOPE.md)을 먼저 확인하세요. 전체 과거 버전과 현재 사이트별 소스가 모두 확보된 것은 아닙니다.
 
+## 독립체인 연구·개발
+
+- [수학적 상태 전이와 검증 규칙](docs/independent-chain-mathematical-spec.md)
+- [노드 구성·3노드 동기화·검증 상세](https://github.com/Orqube/orqube-development-archive/issues/2)
+
 ## 운영 문서
 
 - [문서 작성·이전 자료 정리 기준](docs/documentation-guidelines.md)
