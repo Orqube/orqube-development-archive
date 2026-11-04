@@ -22,5 +22,21 @@
     "files": [
       "docs/blockchain/ORQUBE_ORBS_Staking_Linked_Mining_Research_KR.md"
     ]
+  },
+  {
+    "commit": "7eb946ac612da820f0f8e7cb4f7bd2482bfce203",
+    "subject": "docs: set 10-second target block interval and 5-second research goal",
+    "committed_at": "2026-11-04T11:08:37+09:00",
+    "files": [
+      "docs/blockchain/ORQUBE_Native_Exchange_Design_KR.md"
+    ]
+  },
+  {
+    "commit": "e37feadb9c24ec8411c39dbd49574bd0727cc0d1",
+    "subject": "docs: set 10-second target block interval and 5-second research goal",
+    "committed_at": "2026-11-04T11:08:42+09:00",
+    "files": [
+      "docs/blockchain/ORQUBE_ORBS_Staking_Linked_Mining_Research_KR.md"
+    ]
   }
 ]
