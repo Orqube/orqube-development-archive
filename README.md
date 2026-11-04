@@ -8,6 +8,13 @@ ORQUBE(오르큐브)의 개발 이력과 확보된 소스 스냅샷을 정리하
 - 문의: koreapadosori@gmail.com
 - 정리 및 GitHub 등록일: 2026-10-24
 
+## 울림 · 울림 한글
+
+오르큐브가 진행한 문서 편집기 개발 과정과 보안 적용·확인 범위를 정리했습니다.
+
+- [개발 및 보안 현황 — 2026-11-05](docs/ullim-development-security.md)
+- [울림 서비스](https://ullim.orqubic.com/) · [보안 확인](https://ullim.orqubic.com/security)
+
 ## 개발 기록
 
 [전체 연대표](history/OVERVIEW.md) · [5월](history/2026-05.md) · [6월](history/2026-06.md) · [7월](history/2026-07.md) · [8월](history/2026-08.md) · [9월](history/2026-09.md) · [10월](history/2026-10.md)
