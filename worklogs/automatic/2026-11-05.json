@@ -6,5 +6,13 @@
     "files": [
       "docs/ullim-development-security.md"
     ]
+  },
+  {
+    "commit": "4420bc3f6d8a8ab7980f8758dde74943ed361d9a",
+    "subject": "docs: link ULLIM development and security overview",
+    "committed_at": "2026-11-05T05:02:03+09:00",
+    "files": [
+      "README.md"
+    ]
   }
 ]
