@@ -6,5 +6,13 @@
     "files": [
       "docs/blockchain/ORQUBE_Native_Exchange_Design_KR.md"
     ]
+  },
+  {
+    "commit": "40129a22fc2b01757fb02639b462df4dfb685b79",
+    "subject": "docs: revise exchange design to direct technical narrative",
+    "committed_at": "2026-11-04T10:37:00+09:00",
+    "files": [
+      "docs/blockchain/ORQUBE_Native_Exchange_Design_KR.md"
+    ]
   }
 ]
