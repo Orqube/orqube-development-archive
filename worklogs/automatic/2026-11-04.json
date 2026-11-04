@@ -1,0 +1,10 @@
+[
+  {
+    "commit": "1a05018685b0f1af8a3476f091e1bd42ae3a339c",
+    "subject": "docs: publish ORQUBE native exchange architecture proposal",
+    "committed_at": "2026-11-04T10:34:03+09:00",
+    "files": [
+      "docs/blockchain/ORQUBE_Native_Exchange_Design_KR.md"
+    ]
+  }
+]
