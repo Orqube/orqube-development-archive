@@ -1,0 +1,10 @@
+[
+  {
+    "commit": "9da74dbe4ec438524460d30af2e7b33ee2dcca6c",
+    "subject": "docs: summarize ULLIM development and verified security scope",
+    "committed_at": "2026-11-05T05:01:39+09:00",
+    "files": [
+      "docs/ullim-development-security.md"
+    ]
+  }
+]
