@@ -14,5 +14,13 @@
     "files": [
       "docs/blockchain/ORQUBE_Native_Exchange_Design_KR.md"
     ]
+  },
+  {
+    "commit": "a5c715ec6d5979d90bfa466b9deb7b7be74d3851",
+    "subject": "docs: add ORQUBE first-party ORBS staking-linked mining research",
+    "committed_at": "2026-11-04T11:02:46+09:00",
+    "files": [
+      "docs/blockchain/ORQUBE_ORBS_Staking_Linked_Mining_Research_KR.md"
+    ]
   }
 ]
