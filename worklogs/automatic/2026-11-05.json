@@ -14,5 +14,13 @@
     "files": [
       "README.md"
     ]
+  },
+  {
+    "commit": "8e4e52bea9600bdd10ec04cf91bdb627688209a8",
+    "subject": "docs: record public ORQUBE Secure Browser hybrid vision",
+    "committed_at": "2026-11-05T14:05:11+09:00",
+    "files": [
+      "docs/ORQUBE_SECURE_BROWSER_OVERVIEW.md"
+    ]
   }
 ]
