@@ -1,12 +1,9 @@
-# ORQUBE 통합 개발 26차 — 공식 기술 개발 기록
+# ORQUBE Integrated Development Round 26 — Official Technical Report
 
-**ORQUBE Foundation | 2026년 11월 17일**
+**ORQUBE Foundation | November 17, 2026**
 
-## OQL 독립 언어의 비교 연산 기능 확장
-
-우리는 OQL(ORQUBE Quantum Language)을 독립 컴파일러와 가상머신을 갖춘 프로그래밍 언어로 발전시키기 위한 연구개발을 지속하고 있습니다.
-
-이번 **26차 개발**에서는 25차까지 작성한 블록형 `if / else` 조건문을 보존하면서, 비교 연산에 `!=`(다름), `<=`(작거나 같음), `>=`(크거나 같음)을 추가했습니다. 기존 `==`, `<`, `>`와 함께 조건 분기 계산을 수행하도록 Rust 기반 컴파일러와 가상머신 소스를 수정했습니다.
+## Extended OQL comparison operators
+We continued development of the independent OQL compiler and virtual machine. Round 26 retained block `if / else` and added `!=` (not equal), `<=` (less than or equal), and `>=` (greater than or equal) to the existing `==`, `<`, and `>` operators.
 
 ```text
 let balance = 100
@@ -19,24 +16,16 @@ if enough {
 }
 ```
 
-위 코드의 예상 출력은 `100`입니다. 새로운 연산자와 조건문 연계, 잘못된 연속 비교식 거부에 대한 테스트 코드도 작성했습니다.
+Expected output: `100`. Tests were written for these operators, conditional integration, and rejection of chained comparisons.
 
-## ORQUBE 통합 기술 개발의 연속성
+## Continuity and limitations
+Our long-term technology direction connects OQL, independent blockchain, mining, SASUM WALLET, tokens/meme coins, 210 occupation tokens, NFTs, DEX, stablecoins, and explorer. **Only OQL comparison support was newly implemented in Round 26.** Other areas retained earlier Rust reference validation modules. Mainnet, Build 22 wallet integration, on-chain issuance, DEX trades, independent reserve audits, and live explorer integration were not completed.
 
-우리는 OQL 언어와 독립 블록체인, 채굴, 사슴지갑, 토큰·밈코인, 210개 직업군 토큰, NFT, DEX, 스테이블코인, 체인 탐색기를 하나의 기술 생태계로 연결하는 개발 방향을 유지합니다.
-
-26차의 **실제 신규 구현은 OQL 비교 연산 기능**이며, 나머지 분야는 이전 회차까지 작성한 Rust 기반 참조 검증 코드를 유지했습니다. 실제 메인넷 운영, 사슴지갑 Build 22 연동, 토큰·NFT 발행, DEX 거래, 스테이블코인 준비금 실사, 탐색기 실시간 연결이 완료되었다는 의미는 아닙니다.
-
-## 검증 상태와 다음 과제
-
-우리는 26차 테스트 소스를 작성했지만 현재 작업 환경에서 Rust 컴파일 및 테스트 성공 여부를 확인하지 못했습니다. GitHub Actions 자동 테스트 워크플로도 기존에 작성했으나, 실제 실행 성공을 확인하기 전까지 검증 완료로 발표하지 않겠습니다.
-
-앞으로 자동 테스트 로그 확인과 오류 수정, OQL 함수·자료형·실행 안전성 확대를 우선 추진하겠습니다.
-
-공개 가능한 기술 개발 기록은 ORQUBE Foundation 명의로 게시하고, 비공개 핵심 소스와 운영 보안 정보는 별도로 보호합니다.
+## Verification and next steps
+Rust compilation and test success were not verified. A GitHub Actions workflow exists, but its successful execution was not confirmed. We will inspect actual CI logs, fix errors, and extend functions, types, and runtime safety. Non-sensitive technical progress is public; core source and security details remain private.
 
 ---
 
 **ORQUBE Foundation**  
 *Building Independent Digital Trust and a Universal Programming Language.*  
-**연산은 진화하고, 신뢰는 지속됩니다.**
+**Computation evolves. Trust endures.**
