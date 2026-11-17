@@ -22,5 +22,13 @@
     "files": [
       "docs/OQL_INTEGRATED_ROUND_22_2026-11-17.md"
     ]
+  },
+  {
+    "commit": "57f49d29a63ba3b3c8634345f67545867ecf1316",
+    "subject": "docs: publish ORQUBE Foundation's integrated round 23 report",
+    "committed_at": "2026-11-17T12:59:47+09:00",
+    "files": [
+      "docs/OQL_INTEGRATED_ROUND_23_2026-11-17.md"
+    ]
   }
 ]
