@@ -94,5 +94,29 @@
     "files": [
       "docs/OQL_INTEGRATED_ROUND_25_2026-11-17.md"
     ]
+  },
+  {
+    "commit": "7b55ddceee4f5236f41402d6db159bd53dd5e90f",
+    "subject": "docs: translate recent technical report to English",
+    "committed_at": "2026-11-17T21:27:30+09:00",
+    "files": [
+      "docs/OQL_INTEGRATED_ROUND_26_2026-11-17.md"
+    ]
+  },
+  {
+    "commit": "4625872f0853df67fbb69976fe576b5e39d1bb7a",
+    "subject": "docs: translate recent technical report to English",
+    "committed_at": "2026-11-17T21:27:32+09:00",
+    "files": [
+      "docs/OQL_INTEGRATED_ROUND_27_2026-11-17.md"
+    ]
+  },
+  {
+    "commit": "bc1534755a2f36446b4de0fe8dc366c1e81afc0a",
+    "subject": "docs: translate recent technical report to English",
+    "committed_at": "2026-11-17T21:27:35+09:00",
+    "files": [
+      "docs/OQL_PHYSICAL_AI_ROUND_28_2026-11-17.md"
+    ]
   }
 ]
