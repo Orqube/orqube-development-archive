@@ -38,5 +38,13 @@
     "files": [
       "docs/OQL_INTEGRATED_ROUND_24_2026-11-17.md"
     ]
+  },
+  {
+    "commit": "d230a118ca32a0f37b0a6ad29438cccd868297e2",
+    "subject": "docs: publish ORQUBE Foundation round 25 OQL development report",
+    "committed_at": "2026-11-17T18:31:17+09:00",
+    "files": [
+      "docs/OQL_INTEGRATED_ROUND_25_2026-11-17.md"
+    ]
   }
 ]
