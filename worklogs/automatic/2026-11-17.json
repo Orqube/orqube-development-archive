@@ -62,5 +62,13 @@
     "files": [
       "docs/OQL_INTEGRATED_ROUND_27_2026-11-17.md"
     ]
+  },
+  {
+    "commit": "ccb500bcfe4ad233ff10a0979d6a8cb5140f021a",
+    "subject": "docs: publish ORQUBE Foundation round 28 AX Physical AI roadmap",
+    "committed_at": "2026-11-17T21:00:30+09:00",
+    "files": [
+      "docs/OQL_PHYSICAL_AI_ROUND_28_2026-11-17.md"
+    ]
   }
 ]
