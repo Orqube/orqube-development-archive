@@ -1,12 +1,9 @@
-# ORQUBE 통합 개발 27차 — OQL 사용자 정의 함수 개발
+# ORQUBE Integrated Development Round 27 — OQL User-Defined Function Prototype
 
-**ORQUBE Foundation | 2026년 11월 17일**
+**ORQUBE Foundation | November 17, 2026**
 
-## OQL 독립 프로그래밍 언어의 함수 기능 첫 단계
-
-우리는 OQL(ORQUBE Quantum Language)의 독립 컴파일러와 가상머신을 발전시키기 위한 27차 개발을 진행했습니다.
-
-이번 회차에서는 **두 개의 매개변수를 받는 단순 사용자 정의 함수**를 작성하고 호출하는 문법을 처리하도록 Rust 소스를 추가했습니다.
+## First function implementation
+We added Rust code to recognize and expand simple OQL user-defined functions with two parameters.
 
 ```text
 fn add(a, b) {
@@ -16,20 +13,18 @@ let result = add(20, 22)
 print result
 ```
 
-예상 출력은 `42`입니다. 현재 구현은 함수를 컴파일 단계에서 단일 계산식으로 치환하는 **제한적 시제품**입니다. 독립적인 가상머신 함수 호출, 지역 변수 프레임, 재귀, 중첩 호출, 복수 명령문과 조건부 반환은 아직 지원하지 않습니다.
+Expected output: `42`. This is **compile-time substitution of a single binary expression**, not native VM function execution. Call frames, recursion, nested calls, multi-statement bodies, and conditional returns remain unsupported.
 
-우리는 함수 중복 선언과 잘못된 호출 등을 거부하는 테스트 코드도 작성했습니다. 다만 현재 작업 환경에서 Rust 컴파일 및 자동 테스트 성공 여부는 확인하지 못했으므로 **검증 완료로 발표하지 않습니다**.
+We wrote tests for duplicate declarations and invalid calls, but **Rust compilation and automated test success were not verified**.
 
-## 통합 생태계의 연속성
+## Integrated roadmap
+We retain earlier Rust reference code and designs for blockchain, mining, SASUM WALLET, tokens/meme coins, 210 occupation tokens, NFTs, DEX, stablecoins, and explorer. No mainnet, wallet integration, or on-chain transaction was completed in this round.
 
-우리는 OQL, 독립 블록체인, 채굴, 사슴지갑, 토큰·밈코인, 210개 직업군 토큰, NFT, DEX, 스테이블코인, 체인 탐색기를 연결하는 장기 개발 방향을 유지하고 있습니다. 이번 27차 신규 소스는 **OQL 함수 문법**에 집중했으며 다른 분야의 기존 참조 소스는 보존했습니다. 실제 메인넷 가동이나 지갑 연동·온체인 거래가 완료되었다는 의미는 아닙니다.
-
-## 다음 단계
-
-우리는 Rust 자동 테스트의 실제 실행 결과를 확인하고, 독립적인 함수 호출 명령과 실행 프레임, 호출 깊이·연산량 제한을 구현하는 방향으로 개발을 이어가겠습니다.
+## Next steps
+Confirm CI results and pursue native Call/Return instructions, independent execution frames, scoped variables, call-depth controls, and gas limits.
 
 ---
 
 **ORQUBE Foundation**  
 *Building Independent Digital Trust and a Universal Programming Language.*  
-**연산은 진화하고, 신뢰는 지속됩니다.**
+**Computation evolves. Trust endures.**
