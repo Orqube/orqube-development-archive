@@ -1,18 +1,49 @@
-# ORQUBE OQL / Independent Blockchain — Public Development Status
+# ORQUBE 독립 프로그래밍 언어 OQL 및 독립 블록체인 개발 현황
 
-Date: 2026-11-17 (KST)
-Publication scope: public, non-secret technical status only.
+**ORQUBE Foundation | 기술 개발 기록 | 2026년 11월 17일**
 
-ORQUBE is researching an independent programming language (OQL) and an independent blockchain, alongside wallet, mining, token/NFT, DEX, stablecoin and explorer components.
+## 우리가 구축하는 기술
 
-## Status of integrated development rounds 16–21
-- A restricted Rust-based OQL compiler and virtual machine source has been extended with signed integer arithmetic and variable operands for addition, subtraction, multiplication, division and remainder.
-- Prototype Rust host-side validation helpers were authored for transaction state changes, mining reward arithmetic, wallet preflight checks, token allocation, occupation identifiers, NFT ownership, DEX quote/slippage, stablecoin reserve-number checks, and explorer pagination.
-- These are source-level prototypes, **not evidence of completed mainnet, audited consensus, operational financial reserves, deployed contracts or a production wallet integration**.
-- Automated test cases were written, but compilation and execution have **not yet been verified** in the reported development environment.
-- The original SASUM WALLET Build 22 must be preserved; integration with the prototype modules remains pending.
+우리는 ORQUBE를 단순한 토큰 서비스가 아닌, 독립적인 프로그래밍 언어와 블록체인 기술을 바탕으로 한 범용 분산 신뢰 인프라로 발전시키고 있습니다.
 
-## Publication policy
-- Public: high-level architecture, mathematical specifications, non-sensitive progress reports, verified milestones.
-- Private: sensitive implementation details, security controls, operational settings, credentials, keys and unpublished code.
-- No private keys, seed phrases, tokens, production credentials or unpublished proprietary source should be committed here.
+이를 위해 독립 프로그래밍 언어 **OQL(ORQUBE Quantum Language)**, 독립 블록체인, 채굴, 사슴지갑(SASUM WALLET), 토큰·NFT 생성, 탈중앙화 거래(DEX), 스테이블코인 기반 기술, 블록 탐색기를 단계적으로 연구·개발하고 있습니다.
+
+**우리의 기술 방향은 독립성, 검증 가능성, 보안성, 공정성입니다.**
+
+## OQL 및 통합 개발 16~21차 진행 내용
+
+우리는 Rust 기반 OQL 컴파일러 및 가상머신의 제한된 실행 기능을 확장해 왔습니다. 현재 소스에는 정수와 변수에 대한 덧셈, 뺄셈, 곱셈, 나눗셈, 나머지 연산 처리가 포함되어 있습니다.
+
+독립 블록체인 및 연계 서비스에서는 다음과 같은 기초 검증·계산 모듈을 작성했습니다.
+
+- **독립 블록체인:** 거래 상태 전이와 블록 높이 및 수수료 검사
+- **채굴:** 보상 배분과 반감 횟수에 따른 계산
+- **사슴지갑:** 전송 사전검사, 수수료 및 사용 가능 잔액 계산
+- **토큰·밈코인:** 발행량과 배분량 검증
+- **210개 직업군 토큰:** 직업 코드 및 토큰 심볼 검증 구조
+- **NFT:** 소유자 확인과 중복 ID 검사
+- **DEX:** 교환 예상량, 슬리피지 및 유동성 계산
+- **스테이블코인:** 입력된 준비금 수치에 대한 발행·상환 검증
+- **블록 탐색기:** 블록 높이와 목록 페이지 처리
+
+이들 기능은 **기초 소스 및 Rust 기반 참조 구현 단계**입니다. 현재의 구현이 메인넷 가동, 실제 지갑 서명·송금, 토큰 발행, 실거래, 준비금 실사 또는 보안감사 완료를 뜻하지는 않습니다.
+
+자동 테스트 코드도 작성했지만, 해당 개발 환경에서 Rust 컴파일과 테스트 실행 결과는 아직 확인되지 않았습니다. 우리는 실행·검증 결과가 확인되기 전까지 기능을 완료했다고 발표하지 않겠습니다.
+
+기존 **SASUM WALLET Build 22**는 보존하며, 이번 참조 모듈과의 실제 연동은 후속 과제로 관리하고 있습니다.
+
+## 앞으로의 개발 방향
+
+우리는 OQL의 문법·자료형·함수·실행환경을 확장하고, 독립 블록체인의 상태 전이·합의·노드 간 검증을 단계적으로 구현할 계획입니다. 지갑과 DEX, 토큰·NFT, 스테이블코인 및 탐색기는 실제 연동과 보안 검증을 거쳐 발전시키겠습니다.
+
+개발 기록은 구현된 소스, 실행한 테스트, 검증되지 않은 기능, 운영 배포 여부를 구분하여 관리하겠습니다.
+
+## 공개 및 비공개 기술 관리 원칙
+
+우리는 기술 비전, 공개 가능한 설계와 수학적 모델, 개발 현황 및 검증된 결과를 공개 저장소에 게시합니다. 핵심 비공개 소스, 인증정보, 개인키, 복구 구문, 운영 보안 설정은 공개하지 않습니다.
+
+---
+
+**ORQUBE Foundation**  
+*Building Independent Digital Trust and a Universal Programming Language.*  
+**연산은 진화하고, 신뢰는 지속됩니다.**
