@@ -1,32 +1,30 @@
-# ORQUBE 통합 개발 28차 — AX·Physical AI 기술 확장 착수
+# ORQUBE Integrated Development Round 28 — AX and Physical AI Expansion
 
-**ORQUBE Foundation | 2026년 11월 17일**
+**ORQUBE Foundation | November 17, 2026**
 
-우리는 OQL 독립 프로그래밍 언어, ORQUBE 독립 블록체인, OQL-UFS 보안, SASUM WALLET을 연결하는 장기 비전 위에 **AX(AI Transformation)와 피지컬 AI**를 새로운 산업용 기술 연구 분야로 추가했습니다.
+We have introduced **AX (AI Transformation) and Physical AI** as a long-term industrial research direction alongside OQL, the independent ORQUBE blockchain, OQL-UFS security, and SASUM WALLET.
 
-## 28차 신규 개발
-이번 회차에는 **가상 로봇 명령을 평가하는 Rust 기반 안전 정책 참조 모듈**을 작성했습니다. 장치·명령자 식별, 센서 데이터 신선도, 비상 정지, 장애물 거리, 배터리 잔량, 명령 재전송, 속도 및 이동 거리 제한을 확인해 허용 또는 거부를 판단합니다.
+## Round 28 implementation
+We wrote a **Rust reference safety policy module for simulated robot commands**. It checks device and issuer identity, telemetry freshness, emergency-stop state, obstacle distance, battery level, replayed commands, and motion limits. We also wrote unit tests for permitted and rejected scenarios. **Compilation and automated test success remain unverified.**
 
-정상 명령 허가와 위험·오류 상황 거부를 검증하는 단위 테스트 코드도 작성했습니다. 다만 이 문서 작성 시점에 Rust 컴파일·자동 테스트 성공 여부는 확인되지 않았습니다.
+This is a virtual simulation policy, **not real robot/drone control or an OQL-integrated controller**.
 
-**이것은 가상 시뮬레이션용 정책 코드이며 실제 로봇·드론을 제어하거나 OQL 프로그램을 직접 연결한 것은 아닙니다.**
+## Phased development
+1. Round 28 — simulated robot safety policy reference module
+2. Round 29 — sensor streams and state-transition simulation
+3. Round 30 — OQL policy integration with the safety validator
+4. Round 31 — OQL-UFS device authentication, integrity, and audit
+5. Round 32 — digital twin, operator approval, emergency-stop UI
+6. Round 33 — supervised limited test-hardware integration
+7. Round 34 — non-real-time independent-chain audit records
+8. Round 35 — SASUM WALLET device identity and approved settlement research
 
-## 단계적 개발 계획
-1. 28차: 가상 로봇 안전 정책 참조 모듈 작성
-2. 29차: 센서 스트림과 상태 전이 시뮬레이터
-3. 30차: OQL 정책 코드와 안전 검증 모듈 연계
-4. 31차: OQL-UFS 장치 인증·명령 무결성·감사
-5. 32차: 디지털 트윈·운영자 승인·비상 정지 인터페이스
-6. 33차: 감독하의 제한적 테스트 하드웨어 연동
-7. 34차: ORQUBE 독립체인에 비실시간 감사 기록 연계
-8. 35차: SASUM WALLET 장치 신원 및 승인형 정산 연구
+Real-time safety decisions must not depend on blockchain or remote AI availability. Independent hardware emergency stops, risk assessment, and physical validation are prerequisites before real-world deployment.
 
-우리는 안전 관련 실시간 판단을 블록체인이나 원격 AI에 의존하지 않도록 설계하고, 실제 장비 적용 전 별도의 위험성 평가·하드웨어 비상 정지·실증 시험을 필수 조건으로 삼겠습니다.
-
-기존 OQL 27차 함수 시제품과 독립체인·지갑·토큰·NFT·DEX 개발은 유지하며, 28차 신규 작업은 산업용 신뢰 검증 계층의 초기 연구로 명확히 구분합니다.
+We preserve the Round 27 OQL function prototype and previous blockchain, wallet, token, NFT, and DEX work. Round 28 is initial research, not a finished industrial product.
 
 ---
 
 **ORQUBE Foundation**  
 *Building Independent Digital Trust and a Universal Programming Language.*  
-**연산은 진화하고, 신뢰는 지속됩니다.**
+**Computation evolves. Trust endures.**
