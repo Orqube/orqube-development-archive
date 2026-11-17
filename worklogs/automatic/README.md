@@ -2,6 +2,7 @@
 
 Generated from commits in this repository. Dates: Asia/Seoul.
 
+- [2026-11-17](2026-11-17.md) · [file list](2026-11-17.json)
 - [2026-11-05](2026-11-05.md) · [file list](2026-11-05.json)
 - [2026-11-04](2026-11-04.md) · [file list](2026-11-04.json)
 - [2026-10-31](2026-10-31.md) · [file list](2026-10-31.json)

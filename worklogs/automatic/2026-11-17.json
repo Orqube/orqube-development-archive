@@ -1,0 +1,10 @@
+[
+  {
+    "commit": "ce3bbbd0725f20118daae38f8028cc8553b2f7a0",
+    "subject": "docs: publish verified-scope OQL development status and confirm public write access",
+    "committed_at": "2026-11-17T12:48:42+09:00",
+    "files": [
+      "docs/OQL_PUBLIC_DEVELOPMENT_STATUS_2026-11-17.md"
+    ]
+  }
+]
