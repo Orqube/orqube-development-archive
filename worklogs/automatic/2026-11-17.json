@@ -118,5 +118,13 @@
     "files": [
       "docs/OQL_PHYSICAL_AI_ROUND_28_2026-11-17.md"
     ]
+  },
+  {
+    "commit": "946e0af3fbb56cb4e1f529d0f42ef463b38a90da",
+    "subject": "docs: switch public repository landing README to English and link recent reports",
+    "committed_at": "2026-11-17T21:35:14+09:00",
+    "files": [
+      "README.md"
+    ]
   }
 ]
