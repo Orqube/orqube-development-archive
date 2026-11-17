@@ -1,39 +1,31 @@
-# ORQUBE 통합 개발 24차 — 공식 기술 개발 기록
+# ORQUBE Integrated Development Round 24 — Official Technical Progress Report
 
-**ORQUBE Foundation | 2026년 11월 17일**
+**ORQUBE Foundation | November 17, 2026**
 
-## OQL 독립 언어의 조건부 실행 기능 개발
+## Conditional execution in OQL
+We continue developing OQL as an independent language with its own compiler and virtual machine. Round 24 expanded the Round 23 comparison capability with **restricted one-line conditionals**. For example, `if smaller print a` prints when the condition variable is nonzero and skips printing when it is zero.
 
-우리는 OQL(ORQUBE Quantum Language)을 독립적인 컴파일러와 가상머신을 갖춘 언어로 발전시키기 위한 연구개발을 계속하고 있습니다.
+We added a program counter, forward-jump validation, and per-instruction gas accounting to the virtual machine. At the time of Round 24, block conditionals, `else`, loops, and functions were not yet implemented.
 
-이번 24차에서는 23차에 추가한 비교 연산을 활용하여 **제한된 한 줄 조건문**을 컴파일하고 실행하도록 소스를 확장했습니다. 예를 들어 `if smaller print a`처럼 조건 변수 값이 0이 아닐 때 출력 명령을 수행하고, 0일 때는 해당 명령을 건너뛰도록 구성했습니다.
+## Integrated reference validation
+We preserved existing source while adding reference checks for:
+- **Independent blockchain:** nonces, fees, and transfer pre-checks
+- **Mining:** halving rewards and issuance caps
+- **SASUM WALLET:** network, balance, and fee checks
+- **Tokens/meme coins:** supply and recipient validation
+- **210 occupation tokens:** codes and token symbols
+- **NFT:** duplicate issuance IDs
+- **DEX:** estimated output and minimum received amounts
+- **Stablecoin:** mint/redemption calculations based on supplied reserve figures
+- **Explorer:** continuity of block heights
 
-가상머신에는 프로그램 실행 위치를 관리하는 카운터, 순방향 점프 검증, 실행 명령 단계별 가스 제한 검사를 추가했습니다. 아직 블록형 조건문, `else`, 반복문, 함수 등은 구현되지 않았습니다.
+These are **foundational Rust reference functions**, not a running mainnet, Build 22 wallet integration, on-chain asset issuance/trading, independent reserve verification, or a production explorer.
 
-## 24차 통합 검증 로직
-
-우리는 기존 개발 소스를 유지하면서 다음 영역의 참조 검증 기능을 추가했습니다.
-
-- **독립 블록체인:** 거래 논스·수수료·송금 사전검사
-- **채굴:** 반감 보상과 발행 상한 검증
-- **사슴지갑:** 네트워크·잔액·수수료 검사
-- **토큰·밈코인:** 공급량과 수신자 검증
-- **210개 직업군 토큰:** 코드·토큰 심볼 검사
-- **NFT:** 중복 발행 ID 검사
-- **DEX:** 예상 교환량과 최소 수령량 검사
-- **스테이블코인:** 입력된 준비금 수치에 대한 발행·상환 계산
-- **체인 탐색기:** 블록 높이의 연속성 검증
-
-이들은 **Rust 기반 기초 검증 소스**입니다. 실제 메인넷 가동, SASUM WALLET Build 22 연동, 온체인 자산 발행·거래, 준비금 독립 검증 또는 탐색기 운영을 의미하지 않습니다.
-
-## 검증 및 다음 단계
-
-우리는 24차 관련 테스트 코드를 작성했습니다. 다만 이 문서 게시 시점에 Rust 컴파일과 GitHub Actions 테스트 성공 여부는 아직 확인되지 않았습니다. 앞으로 테스트 실행 결과를 검토하고, 조건문과 실행환경의 안전성을 확장해 나가겠습니다.
-
-공개 가능한 기술 진행 현황은 ORQUBE Foundation 명의로 기록하고, 비공개 핵심 소스와 인증정보는 별도 저장소에서 보호합니다.
+## Verification and next steps
+We wrote Round 24 tests but had not confirmed Rust compilation or GitHub Actions success at publication. We will inspect actual results and continue improving conditional execution and safety. Public progress is published under ORQUBE Foundation; private source and credentials remain protected.
 
 ---
 
 **ORQUBE Foundation**  
 *Building Independent Digital Trust and a Universal Programming Language.*  
-**연산은 진화하고, 신뢰는 지속됩니다.**
+**Computation evolves. Trust endures.**
