@@ -1,39 +1,32 @@
-# ORQUBE 통합 개발 23차 — 공식 기술 개발 기록
+# ORQUBE Integrated Development Round 23 — Official Technical Progress Report
 
-**ORQUBE Foundation | 2026년 11월 17일**
+**ORQUBE Foundation | November 17, 2026**
 
-## 우리가 진행한 23차 개발
+## Our Round 23 development
+We continue developing OQL (ORQUBE Quantum Language) toward an independent programming language and execution environment. In Round 23, we added **integer and variable comparisons (`==`, `<`, `>`)** to the Rust-based OQL compiler and virtual machine. Comparisons produce integer 1 for true and 0 for false, providing a foundation for future conditional control flow.
 
-우리는 OQL(ORQUBE Quantum Language)을 독립적인 실행환경을 갖춘 프로그래밍 언어로 발전시키기 위해 단계별 구현을 이어가고 있습니다. 이번 23차에서는 기존 Rust 기반 OQL 컴파일러·가상머신에 **정수 및 변수의 비교 연산(==, <, >)**을 추가했습니다. 비교 결과는 참 1, 거짓 0으로 계산하도록 소스를 작성했습니다. 이 기능은 앞으로 조건문과 프로그램 흐름 제어를 확장하기 위한 기초입니다.
+## Independent blockchain and connected systems
+While preserving existing source, we added or organized reference validation logic for:
+- **Independent blockchain:** transaction nonces, fees, and transfer pre-checks
+- **Mining:** remaining issuable supply against the cap
+- **SASUM WALLET:** available transfer balance
+- **Tokens and meme coins:** holder allocation totals
+- **210 occupation tokens:** occupation code bounds
+- **NFT:** duplicate ID checks
+- **DEX:** expected exchange amounts and slippage
+- **Stablecoin:** supply changes following mint/redemption
+- **Explorer:** block confirmation counts
 
-## 독립 블록체인과 연계 시스템
+These are **foundational Rust validation functions**, not evidence of a running mainnet, Build 22 wallet integration, on-chain issuance/trading, or independently audited reserves.
 
-우리는 기존 소스를 보존하면서 다음과 같은 검증 로직을 추가·정리했습니다.
+## Automated testing preparation
+We added a GitHub Actions configuration to run Rust tests on source changes or manual triggers. **Successful CI execution had not been verified at publication time.** We will not describe tests as passed without checking their results.
 
-- **독립 블록체인:** 거래 논스·수수료·송금 사전검사
-- **채굴:** 총발행 상한 대비 남은 발행 가능량 계산
-- **사슴지갑:** 송금 가능 잔액 검사
-- **토큰·밈코인:** 보유자별 수량 합계 검사
-- **210개 직업군 토큰:** 직업 코드 범위 검증
-- **NFT:** 중복 ID 검사
-- **DEX:** 교환 예상량 및 슬리피지 계산
-- **스테이블코인:** 발행·상환 후 공급량 계산
-- **체인 탐색기:** 블록 확인 횟수 계산
-
-이들은 **Rust 기반 기초 검증 소스**이며 실제 메인넷 운영, 사슴지갑 Build 22 연동, 온체인 발행·거래 또는 준비금 실사 완료를 의미하지 않습니다.
-
-## 자동 테스트 체계 준비
-
-우리는 23차 개발에서 GitHub Actions를 이용한 Rust 자동 테스트 설정 파일을 추가했습니다. 소스 변경이나 수동 실행 요청 시 테스트를 수행하도록 구성했지만, **현재 시점에서 실제 CI 실행 성공 여부는 확인하지 못했습니다.** 검증 결과를 확인하기 전에는 테스트 완료라고 발표하지 않겠습니다.
-
-## 향후 계획
-
-우리는 OQL의 조건문·함수·자료형 등 핵심 문법을 확장하고, Rust 컴파일 및 테스트 결과를 검증하며, 독립 블록체인과 관련 서비스의 실제 연동을 단계적으로 추진하겠습니다.
-
-우리는 공개 가능한 기술 설명과 검증된 진행 현황은 공개 저장소에 기록하고, 비공개 핵심 소스와 운영 보안정보는 별도로 보호하겠습니다.
+## Next steps
+We will expand OQL conditionals, functions, and types; verify Rust compilation and test results; and gradually pursue real integrations. Public technical progress is documented openly, while sensitive source and operational security data remain private.
 
 ---
 
 **ORQUBE Foundation**  
 *Building Independent Digital Trust and a Universal Programming Language.*  
-**연산은 진화하고, 신뢰는 지속됩니다.**
+**Computation evolves. Trust endures.**
