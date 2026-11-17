@@ -6,5 +6,13 @@
     "files": [
       "docs/OQL_PUBLIC_DEVELOPMENT_STATUS_2026-11-17.md"
     ]
+  },
+  {
+    "commit": "3d35314cab083ee2f864e3b32c67f8ec5762b43e",
+    "subject": "docs: rewrite public OQL progress report in ORQUBE Foundation's official first-person voice",
+    "committed_at": "2026-11-17T12:50:32+09:00",
+    "files": [
+      "docs/OQL_PUBLIC_DEVELOPMENT_STATUS_2026-11-17.md"
+    ]
   }
 ]
