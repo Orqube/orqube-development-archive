@@ -70,5 +70,29 @@
     "files": [
       "docs/OQL_PHYSICAL_AI_ROUND_28_2026-11-17.md"
     ]
+  },
+  {
+    "commit": "d817c37b98336ec61703b668d2338be6881eb9e8",
+    "subject": "docs: translate ORQUBE Round 23-28 public technical reports into English",
+    "committed_at": "2026-11-17T21:27:10+09:00",
+    "files": [
+      "docs/OQL_INTEGRATED_ROUND_23_2026-11-17.md"
+    ]
+  },
+  {
+    "commit": "85035bb85c8ca3fb1e46e7ddaf5c897087b1d16f",
+    "subject": "docs: translate ORQUBE Round 23-28 public technical reports into English",
+    "committed_at": "2026-11-17T21:27:12+09:00",
+    "files": [
+      "docs/OQL_INTEGRATED_ROUND_24_2026-11-17.md"
+    ]
+  },
+  {
+    "commit": "f4f287e978228593d1e6d9d7b603fc839afad81f",
+    "subject": "docs: translate ORQUBE Round 23-28 public technical reports into English",
+    "committed_at": "2026-11-17T21:27:14+09:00",
+    "files": [
+      "docs/OQL_INTEGRATED_ROUND_25_2026-11-17.md"
+    ]
   }
 ]
